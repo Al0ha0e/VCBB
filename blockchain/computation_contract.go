@@ -3,7 +3,8 @@ package blockchain
 import "vcbb/types"
 
 type ComputationContract struct {
-	handler BlockChainHandler
+	handler             BlockChainHandler
+	contractStateUpdate chan *ComputationContractUpdate
 }
 
 type ComputationContractUpdate struct {
@@ -11,8 +12,11 @@ type ComputationContractUpdate struct {
 	Punished  map[string][]types.Address
 }
 
-func NewComputationContract(handler BlockChainHandler) *ComputationContract {
-	return &ComputationContract{handler: handler}
+func NewComputationContract(handler BlockChainHandler, contractStateUpdate chan *ComputationContractUpdate) *ComputationContract {
+	return &ComputationContract{
+		handler:             handler,
+		contractStateUpdate: contractStateUpdate,
+	}
 }
 
 func (this *ComputationContract) Start() (types.Address, error) {
@@ -21,5 +25,5 @@ func (this *ComputationContract) Start() (types.Address, error) {
 }
 
 func (this *ComputationContract) Terminate() {
-
+	close(this.contractStateUpdate)
 }

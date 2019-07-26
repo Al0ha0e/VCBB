@@ -9,6 +9,7 @@ type SingleDataSource interface {
 	GetHash() string
 	GetValue() []byte
 	GetSize() uint64
+	GetId() uint64
 }
 
 type DataSource interface {

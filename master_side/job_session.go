@@ -3,19 +3,18 @@ package master_side
 import (
 	"encoding/json"
 	"fmt"
-	"vcbb/blockchain"
 	"vcbb/slave_side"
 	"vcbb/types"
 )
 
 func (this *Job) StartSession(sch *Scheduler) error {
-	this.ComputationContract = blockchain.NewComputationContract(sch.bcHandler)
+	this.Init()
 	addr, err := this.ComputationContract.Start()
 	if err != nil {
 		return err
 	}
 	req, err := this.getComputationReq(addr)
-	err = sch.peerList.BroadCast(req)
+	err = this.PeerList.BroadCast(req)
 	if err != nil {
 		return err
 	}
@@ -86,37 +85,59 @@ func (this *Job) updateAnswer(newAnswer map[string][]types.Address) (bool, error
 func (this *Job) handleMetaDataReq(sch *Scheduler) {
 	var l, r uint64
 	for {
-		req := <-this.MetaDataReq
-		var reqobj slave_side.MetaDataReq
-		err := json.Unmarshal(req.Content, &reqobj)
-		if err != nil {
-			continue
+		select {
+		case req := <-this.MetaDataReq:
+			if this.ParticipantState[req.From] != Unknown {
+				continue
+			}
+			var reqobj slave_side.MetaDataReq
+			err := json.Unmarshal(req.Content, &reqobj)
+			if err != nil {
+				continue
+			}
+			var meta []byte
+			meta, l, r, err = this.getJobByAmount(reqobj.Amount, l, r)
+			if err != nil {
+				continue
+			}
+			this.ParticipantState[req.From] = GotMeta
+			this.PeerList.SendMsgTo(req.From, meta)
+		case <-this.TerminateSignal:
+			return
 		}
-		var meta []byte
-		meta, l, r, err = this.getJobByAmount(reqobj.Amount, l, r)
-		if err != nil {
-			continue
-		}
-		sch.peerList.SendMsgTo(req.From, meta)
+
 	}
 }
 
 func (this *Job) handleContractStateUpdate(sch *Scheduler) {
 	for {
-		upd := <-this.ContractStateUpdate
-		sch.peerList.UpdatePunishedPeers(upd.Punished)
-		canterminate, err := this.updateAnswer(upd.NewAnswer)
-		if err != nil {
-			continue
+		select {
+		case upd := <-this.ContractStateUpdate:
+			this.PeerList.UpdatePunishedPeers(upd.Punished)
+			canterminate, err := this.updateAnswer(upd.NewAnswer)
+			if err != nil {
+				continue
+			}
+			if canterminate {
+				this.Terminate()
+				break
+			}
+		case <-this.TerminateSignal:
+			return
 		}
-		if canterminate {
-			this.Terminate()
-			break
-		}
+
 	}
 }
 
 func (this *Job) Terminate() {
-	this.ComputationContract.Terminate()
 	this.State = Finished
+	this.ComputationContract.Terminate()
+	this.PeerList.Close()
+	this.TerminateSignal <- *new(struct{})
+	this.TerminateSignal <- *new(struct{})
+	close(this.TerminateSignal)
+	ret := &JobMeta{
+		Id: this.ID,
+	}
+	this.Sch.result <- ret
 }

@@ -10,6 +10,7 @@ type Scheduler struct {
 	bcHandler blockchain.BlockChainHandler
 	peerList  *peer_list.PeerList
 	graph     scheduleGraph
+	result    chan *JobMeta
 }
 
 func NewScheduler(

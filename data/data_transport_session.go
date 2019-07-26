@@ -1,5 +1,10 @@
 package data
 
+/*TODO:
+* change participant state
+*
+ */
+
 import (
 	"encoding/json"
 	"fmt"
@@ -15,11 +20,19 @@ const (
 	Finished
 )
 
+type PtState uint8
+
+const (
+	GotMeta PtState = iota
+	Received
+)
+
 type DataTransportSession struct {
 	ID                  string
 	State               DataTransportState
 	PeerList            *peer_list.PeerListInstance
 	DataSource          types.DataSource
+	ParticipantState    map[types.Address]PtState
 	DataHash            []string
 	DataDistribute      []uint64
 	DataReceivers       map[string][]types.Address
@@ -52,6 +65,7 @@ func NewDataTransportSession(id string, peerlist *peer_list.PeerList, datasource
 }
 
 func (this *DataTransportSession) Init() {
+	this.ParticipantState = make(map[types.Address]PtState)
 	this.DataDistribute = make([]uint64, 0)
 	this.DataReceivers = make(map[string][]types.Address)
 	this.DataReq = make(chan peer_list.MessageInfo, 1)
@@ -87,6 +101,9 @@ func (this *DataTransportSession) handleDataReq() {
 	for {
 		select {
 		case req := <-this.DataReq:
+			if this.ParticipantState[req.From] != GotMeta {
+				continue
+			}
 			var reqobj dataTransportRes
 			err := json.Unmarshal(req.Content, &reqobj)
 			if err != nil {
