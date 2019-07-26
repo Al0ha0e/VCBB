@@ -1,18 +1,15 @@
 package peer_list
 
-import "vcbb/types"
-
 type PeerList struct {
+	instances map[string]*PeerListInstance
 }
 
-func (this *PeerList) BroadCast([]byte) error {
-	return nil
+func (this *PeerList) GetInstance(id string) *PeerListInstance {
+	ret := &PeerListInstance{ID: id, PL: this}
+	this.instances[id] = ret
+	return ret
 }
 
-func (this *PeerList) SendMsgTo(to types.Address, msg []byte) {
-
-}
-
-func (this *PeerList) UpdatePunishedPeers(map[string][]types.Address) {
-
+func (this *PeerList) RemoveInstance(id string) {
+	delete(this.instances, id)
 }
