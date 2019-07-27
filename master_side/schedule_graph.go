@@ -6,7 +6,7 @@ type scheduleNode struct {
 	baseTest            string
 	hardwareRequirement string
 	partitions          []string
-	dependencies        []Dependency
+	dependencies        []*Dependency
 	indeg               uint64
 	outdeg              uint64
 	inNodes             []*scheduleNode

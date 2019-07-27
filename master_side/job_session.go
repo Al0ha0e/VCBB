@@ -26,7 +26,7 @@ func (this *Job) StartSession(sch *Scheduler) error {
 
 //pack contract address,hardware requirement and basetest into a request message
 func (this *Job) getComputationReq(addr types.Address) ([]byte, error) {
-	ret := computationReq{ContractAddr: addr, Hardware: this.HarWareRequirement, BaseTest: this.BaseTest}
+	ret := computationReq{ContractAddr: addr, Hardware: this.SchNode.hardwareRequirement, BaseTest: this.SchNode.baseTest}
 	retb, err := json.Marshal(ret)
 	return retb, err
 }
@@ -37,22 +37,22 @@ func (this *Job) getJobByAmount(amount, l, r uint64) ([]byte, uint64, uint64, er
 	if amount == 0 {
 		return nil, l, r, fmt.Errorf("amount of metadata must be positive")
 	}
-	pl := uint64(len(this.Partitions))
+	pl := uint64(len(this.SchNode.partitions))
 	if amount > pl {
 		amount = pl
 	}
-	ret := MetaDataRes{Code: this.Code}
+	ret := MetaDataRes{Code: this.SchNode.code}
 	for i := l - 1; i >= 0 && amount > 0; i++ {
 		tl--
 		amount--
 		this.PartitionDistribute[i]++
-		ret.Partitions = append(ret.Partitions, this.Partitions[i])
+		ret.Partitions = append(ret.Partitions, this.SchNode.partitions[i])
 	}
 	for i := r; i < pl && amount > 0; i++ {
 		tr++
 		amount--
 		this.PartitionDistribute[i]++
-		ret.Partitions = append(ret.Partitions, this.Partitions[i])
+		ret.Partitions = append(ret.Partitions, this.SchNode.partitions[i])
 	}
 	if amount > 0 {
 		tl = l
@@ -61,11 +61,11 @@ func (this *Job) getJobByAmount(amount, l, r uint64) ([]byte, uint64, uint64, er
 			tr++
 			amount--
 			this.PartitionDistribute[i]++
-			ret.Partitions = append(ret.Partitions, this.Partitions[i])
+			ret.Partitions = append(ret.Partitions, this.SchNode.partitions[i])
 		}
 	}
 	var dep []*JobMeta
-	for _, meta := range this.Dependencies {
+	for _, meta := range this.SchNode.dependencies {
 		dep = append(dep, meta.DependencyJobMeta)
 	}
 	ret.DependencyMeta = dep
@@ -143,7 +143,7 @@ func (this *Job) Terminate() {
 	ret := &JobMeta{
 		Id:           this.ID,
 		Participants: pt,
-		Partitions:   this.Partitions,
+		Partitions:   this.SchNode.partitions,
 	}
 	this.Sch.result <- ret
 }

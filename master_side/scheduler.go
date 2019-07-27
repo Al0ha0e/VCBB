@@ -3,34 +3,117 @@ package master_side
 import (
 	"fmt"
 	"vcbb/blockchain"
+	"vcbb/data"
 	"vcbb/peer_list"
+	"vcbb/types"
 )
 
 type Scheduler struct {
-	bcHandler blockchain.BlockChainHandler
-	peerList  *peer_list.PeerList
-	graph     scheduleGraph
-	result    chan *JobMeta
+	ID                      string
+	bcHandler               blockchain.BlockChainHandler
+	peerList                *peer_list.PeerList
+	graph                   scheduleGraph
+	result                  chan *JobMeta
+	originalPartitions      []string
+	originalData            types.DataSource
+	oriDataTransportSession *data.DataTransportSession
+	originalDataTracker     *data.Tracker
 }
 
 func NewScheduler(
+	id string,
 	bchandler blockchain.BlockChainHandler,
 	peerList *peer_list.PeerList,
-	graph scheduleGraph) (*Scheduler, error) {
+	graph scheduleGraph,
+	oriPartitions []string,
+	oridata types.DataSource,
+) (*Scheduler, error) {
 	err := checkGraph(graph)
 	if err != nil {
 		return nil, err
 	}
-	return &Scheduler{bcHandler: bchandler, peerList: peerList, graph: graph}, nil
+	return &Scheduler{
+		ID:                 id,
+		bcHandler:          bchandler,
+		peerList:           peerList,
+		graph:              graph,
+		result:             make(chan *JobMeta, 100),
+		originalPartitions: oriPartitions,
+		originalData:       oridata,
+	}, nil
 }
 
-func (this *Scheduler) Dispatch() {
+func (this *Scheduler) DispatchJob(id string, node *scheduleNode) error {
+	job := NewJob(
+		id, //TODO: RANDOMID
+		this,
+		node,
+		/*
+			[]*Dependency{oriDep},
+			node.partitions,
+			node.code,
+			node.baseTest,
+			node.hardwareRequirement,*/
+	)
+	err := job.StartSession(this) //BUG:BLOCK WHEN A JOB WAITING FOR ITS CONTRACT
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+/*
+* distribute data
+* start file tracker
+* start all of the jobs whose indeg is 0
+* watch the running state
+ */
+func (this *Scheduler) Dispatch() error {
+	this.oriDataTransportSession = data.NewDataTransportSession("ftp:"+this.ID, this.peerList, this.originalData)
+	_, err := this.oriDataTransportSession.StartSession() //TODO:return value
+	if err != nil {
+		return err
+	}
+	this.originalDataTracker = data.NewTracker("tck:"+this.ID, this.oriDataTransportSession, this.peerList)
+	this.originalDataTracker.StartTracker()
+	oriDep := new(Dependency)
+	oriDep.DependencyJobMeta = &JobMeta{
+		Id:               this.ID,
+		Participants:     []types.Address{this.peerList.Address},
+		Partitions:       this.originalPartitions,
+		PartitionAnswers: this.originalData.GetHashList(),
+	}
 	for _, node := range this.graph {
 		if node.indeg+node.controlIndeg == 0 {
-			
+			node.dependencies = []*Dependency{oriDep}
+			err = this.DispatchJob("RANDOM ID", node)
+			if err != nil {
+				return err
+			}
 		}
 	}
+	go this.watch()
+	return nil
+}
 
+func (this *Scheduler) watch() {
+	for {
+		jobmeta := <-this.result
+		node := jobmeta.node
+		for _, to := range node.outNodes {
+			to.indeg--
+			to.dependencies = append(to.dependencies, &Dependency{DependencyJob: jobmeta.job, DependencyJobMeta: jobmeta})
+			if to.indeg+to.controlIndeg == 0 {
+				this.DispatchJob("RANDOMID", to) //ERROR HANDLEING
+			}
+		}
+		for _, to := range node.controlOutNodes {
+			to.controlIndeg--
+			if to.indeg+to.controlIndeg == 0 {
+				this.DispatchJob("RANODMID", to) //ERROR HANDLEING
+			}
+		}
+	}
 }
 
 func checkGraph(graph scheduleGraph) error {

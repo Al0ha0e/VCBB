@@ -17,7 +17,7 @@ func NewTracker(id string, session *DataTransportSession, pl *peer_list.PeerList
 	return &Tracker{
 		ID:       id,
 		session:  session,
-		peerList: pl.GetInstance("ftp:" + id),
+		peerList: pl.GetInstance(id),
 	}
 }
 
