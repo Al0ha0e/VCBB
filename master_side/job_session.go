@@ -122,7 +122,7 @@ func (this *Job) handleContractStateUpdate(sch *Scheduler) {
 				this.Terminate()
 				break
 			}
-		case <-this.TerminateSignal:
+		case <-this.TerminateSignal: //BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			return
 		}
 
@@ -136,8 +136,14 @@ func (this *Job) Terminate() {
 	this.TerminateSignal <- *new(struct{})
 	this.TerminateSignal <- *new(struct{})
 	close(this.TerminateSignal)
+	var pt []types.Address
+	for k, _ := range this.ParticipantState {
+		pt = append(pt, k)
+	}
 	ret := &JobMeta{
-		Id: this.ID,
+		Id:           this.ID,
+		Participants: pt,
+		Partitions:   this.Partitions,
 	}
 	this.Sch.result <- ret
 }

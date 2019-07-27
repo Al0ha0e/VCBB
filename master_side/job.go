@@ -43,7 +43,7 @@ type Job struct {
 
 type JobMeta struct {
 	Id               string          `json:"id"`
-	Participants     []types.Account `json:"participants"`
+	Participants     []types.Address `json:"participants"`
 	Partitions       []string        `json:"partitions"`
 	PartitionAnswers []string        `json:"answers"`
 	RootHash         string          `json:"root"`
@@ -71,5 +71,6 @@ func (this *Job) Init() {
 	this.AnswerDistribute = make(map[string][]types.Address)
 	this.MetaDataReq = make(chan peer_list.MessageInfo, 1)
 	this.TerminateSignal = make(chan struct{}, 2)
-	this.PeerList.Init(nil, nil, this.MetaDataReq)
+	this.PeerList.AddChannel(peer_list.MetaDataReq, this.MetaDataReq)
+	//this.PeerList.Init(nil, nil, this.MetaDataReq)
 }

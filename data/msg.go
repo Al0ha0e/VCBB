@@ -1,5 +1,7 @@
 package data
 
+import "vcbb/types"
+
 type dataTransportReq struct {
 	Requirement string   `json:"requirement"`
 	Metadata    []string `json:"meta"`
@@ -12,4 +14,8 @@ type dataTransportRes struct {
 type dataReceivedRes struct {
 	//Success  bool   `json:"success"`
 	DataList []uint64 `json:"dataList"`
+}
+
+type dataInfoRes struct {
+	DataReceivers map[string][]types.Address `json:"dataReceivers"`
 }

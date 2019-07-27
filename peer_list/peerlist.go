@@ -1,6 +1,9 @@
 package peer_list
 
+import "vcbb/types"
+
 type PeerList struct {
+	Address   types.Address
 	instances map[string]*PeerListInstance
 }
 

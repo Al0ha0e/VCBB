@@ -2,18 +2,31 @@ package peer_list
 
 import "vcbb/types"
 
+const (
+	DataReq     = "DataReq"
+	DataRecv    = "DataRecv"
+	MetaDataReq = "MetaDataReq"
+	InfoReq     = "TrackReq"
+)
+
 type PeerListInstance struct {
-	ID          string
-	PL          *PeerList
-	DataReq     chan MessageInfo
-	DataRecv    chan MessageInfo
-	MetaDataReq chan MessageInfo
+	ID       string
+	PL       *PeerList
+	channels map[string]chan MessageInfo
+	//DataReq     chan MessageInfo
+	//DataRecv    chan MessageInfo
+	//MetaDataReq chan MessageInfo
 }
 
+/*
 func (this *PeerListInstance) Init(datareq chan MessageInfo, datarecv chan MessageInfo, metadatareq chan MessageInfo) {
 	this.DataReq = datareq
 	this.DataRecv = datarecv
 	this.MetaDataReq = metadatareq
+}*/
+
+func (this *PeerListInstance) AddChannel(name string, ch chan MessageInfo) {
+	this.channels[name] = ch
 }
 
 func (this *PeerListInstance) BroadCast([]byte) error {
@@ -34,13 +47,8 @@ func (this *PeerListInstance) UpdatePunishedPeers(map[string][]types.Address) {
 
 func (this *PeerListInstance) Close() {
 	this.PL.RemoveInstance(this.ID)
-	if this.DataReq != nil {
-		close(this.DataReq)
-	}
-	if this.DataRecv != nil {
-		close(this.DataRecv)
-	}
-	if this.MetaDataReq != nil {
-		close(this.MetaDataReq)
+	for k, v := range this.channels {
+		close(v)
+		delete(this.channels, k)
 	}
 }

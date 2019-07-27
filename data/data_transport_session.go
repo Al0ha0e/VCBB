@@ -72,7 +72,18 @@ func (this *DataTransportSession) Init() {
 	this.DataRecv = make(chan peer_list.MessageInfo, 1)
 	this.DataTransportResult = make(chan *DataTransportMeta, 1)
 	this.TerminateSignal = make(chan struct{}, 2)
-	this.PeerList.Init(this.DataReq, this.DataRecv, nil)
+	this.PeerList.AddChannel(peer_list.DataReq, this.DataReq)
+	this.PeerList.AddChannel(peer_list.DataRecv, this.DataRecv)
+	for _, hash := range this.DataHash {
+		this.DataReceivers[hash] = append(this.DataReceivers[hash], this.PeerList.PL.Address)
+	}
+}
+
+func (this *DataTransportSession) GetState() (map[string][]types.Address, error) {
+	if this.State == Preparing {
+		return nil, fmt.Errorf("Preparing")
+	}
+	return this.DataReceivers, nil
 }
 
 func (this *DataTransportSession) StartSession() (chan *DataTransportMeta, error) {

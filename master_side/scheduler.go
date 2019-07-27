@@ -27,7 +27,7 @@ func NewScheduler(
 func (this *Scheduler) Dispatch() {
 	for _, node := range this.graph {
 		if node.indeg+node.controlIndeg == 0 {
-
+			
 		}
 	}
 
