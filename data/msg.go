@@ -1,6 +1,6 @@
 package data
 
-import "vcbb/types"
+import "github.com/Al0ha0e/vcbb/types"
 
 type dataTransportReq struct {
 	Requirement string   `json:"requirement"`

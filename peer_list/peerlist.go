@@ -1,6 +1,6 @@
 package peer_list
 
-import "vcbb/types"
+import "github.com/Al0ha0e/vcbb/types"
 
 type PeerList struct {
 	Address   types.Address

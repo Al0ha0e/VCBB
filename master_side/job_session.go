@@ -3,9 +3,10 @@ package master_side
 import (
 	"encoding/json"
 	"fmt"
-	"vcbb/peer_list"
-	"vcbb/slave_side"
-	"vcbb/types"
+
+	"github.com/Al0ha0e/vcbb/peer_list"
+	"github.com/Al0ha0e/vcbb/slave_side"
+	"github.com/Al0ha0e/vcbb/types"
 )
 
 func (this *Job) StartSession(sch *Scheduler) error {

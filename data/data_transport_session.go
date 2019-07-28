@@ -8,8 +8,9 @@ package data
 import (
 	"encoding/json"
 	"fmt"
-	"vcbb/peer_list"
-	"vcbb/types"
+
+	"github.com/Al0ha0e/vcbb/peer_list"
+	"github.com/Al0ha0e/vcbb/types"
 )
 
 type DataTransportState uint8

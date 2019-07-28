@@ -1,6 +1,6 @@
 package peer_list
 
-import "vcbb/types"
+import "github.com/Al0ha0e/vcbb/types"
 
 const (
 	DataReq            = "DataReq"     //DATA STORE SEND TO DATA PROVIDER TO GET DATA

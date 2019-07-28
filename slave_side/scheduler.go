@@ -2,9 +2,8 @@ package slave_side
 
 import (
 	"fmt"
-	//"vcbb/master_side"
 
-	"vcbb/peer_list"
+	"github.com/Al0ha0e/vcbb/peer_list"
 )
 
 type Scheduler struct {

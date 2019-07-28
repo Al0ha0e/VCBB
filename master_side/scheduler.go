@@ -2,10 +2,11 @@ package master_side
 
 import (
 	"fmt"
-	"vcbb/blockchain"
-	"vcbb/data"
-	"vcbb/peer_list"
-	"vcbb/types"
+
+	"github.com/Al0ha0e/vcbb/blockchain"
+	"github.com/Al0ha0e/vcbb/data"
+	"github.com/Al0ha0e/vcbb/peer_list"
+	"github.com/Al0ha0e/vcbb/types"
 )
 
 type Scheduler struct {

@@ -1,6 +1,6 @@
 package blockchain
 
-import "vcbb/types"
+import "github.com/Al0ha0e/vcbb/types"
 
 type ComputationContract struct {
 	handler             BlockChainHandler

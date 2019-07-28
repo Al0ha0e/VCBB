@@ -2,7 +2,8 @@ package data
 
 import (
 	"encoding/json"
-	"vcbb/peer_list"
+
+	"github.com/Al0ha0e/vcbb/peer_list"
 )
 
 type Tracker struct {
