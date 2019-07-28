@@ -92,7 +92,8 @@ func (this *DataTransportSession) StartSession() (chan *DataTransportMeta, error
 	if err != nil {
 		return nil, err
 	}
-	this.PeerList.BroadCast(req)
+	//this.PeerList.BroadCastRPC(this.ID, peer_list.SeekReceiverReq, req)
+	this.PeerList.PL.BroadCastRPC(peer_list.SeekReceiverReq, req)
 	this.State = Transporting
 	go this.handleDataReq()
 	go this.updateDataReceiver()

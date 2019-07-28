@@ -3,6 +3,7 @@ package master_side
 import (
 	"encoding/json"
 	"fmt"
+	"vcbb/peer_list"
 	"vcbb/slave_side"
 	"vcbb/types"
 )
@@ -14,7 +15,8 @@ func (this *Job) StartSession(sch *Scheduler) error {
 		return err
 	}
 	req, err := this.getComputationReq(addr)
-	err = this.PeerList.BroadCast(req)
+	//err = this.PeerList.BroadCastRPC(this.ID, peer_list.SeekParticipantReq, req) //(req)
+	err = sch.peerList.BroadCastRPC(peer_list.SeekParticipantReq, req)
 	if err != nil {
 		return err
 	}
@@ -26,13 +28,22 @@ func (this *Job) StartSession(sch *Scheduler) error {
 
 //pack contract address,hardware requirement and basetest into a request message
 func (this *Job) getComputationReq(addr types.Address) ([]byte, error) {
-	ret := computationReq{ContractAddr: addr, Hardware: this.SchNode.hardwareRequirement, BaseTest: this.SchNode.baseTest}
+	ret := ComputationReq{
+		PartitionCnt: uint64(len(this.SchNode.partitions)),
+		ContractAddr: addr,
+		Hardware:     this.SchNode.hardwareRequirement,
+		BaseTest:     this.SchNode.baseTest,
+	}
 	retb, err := json.Marshal(ret)
 	return retb, err
 }
 
+func (this *Job) genPubKey(addr types.Address) string {
+	return "SZH"
+}
+
 //get partitions by amount, [l,r) is the range where the partitions are most computed
-func (this *Job) getJobByAmount(amount, l, r uint64) ([]byte, uint64, uint64, error) {
+func (this *Job) getJobByAmount(to types.Address, amount, l, r uint64) ([]byte, uint64, uint64, error) {
 	tl, tr := l, r
 	if amount == 0 {
 		return nil, l, r, fmt.Errorf("amount of metadata must be positive")
@@ -41,7 +52,7 @@ func (this *Job) getJobByAmount(amount, l, r uint64) ([]byte, uint64, uint64, er
 	if amount > pl {
 		amount = pl
 	}
-	ret := MetaDataRes{Code: this.SchNode.code}
+	ret := MetaDataRes{PublicKey: this.genPubKey(to), Code: this.SchNode.code}
 	for i := l - 1; i >= 0 && amount > 0; i++ {
 		tl--
 		amount--
@@ -96,12 +107,12 @@ func (this *Job) handleMetaDataReq(sch *Scheduler) {
 				continue
 			}
 			var meta []byte
-			meta, l, r, err = this.getJobByAmount(reqobj.Amount, l, r)
+			meta, l, r, err = this.getJobByAmount(req.From, reqobj.Amount, l, r)
 			if err != nil {
 				continue
 			}
 			this.ParticipantState[req.From] = GotMeta
-			this.PeerList.SendMsgTo(req.From, meta)
+			this.PeerList.RemoteProcedureCall(req.From, this.ID, peer_list.MetaDataRes, meta) //SendMsgTo(req.From, meta)
 		case <-this.TerminateSignal:
 			return
 		}

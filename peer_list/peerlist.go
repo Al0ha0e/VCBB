@@ -5,6 +5,7 @@ import "vcbb/types"
 type PeerList struct {
 	Address   types.Address
 	instances map[string]*PeerListInstance
+	channels  map[string]chan MessageInfo
 }
 
 func (this *PeerList) GetInstance(id string) *PeerListInstance {
@@ -15,4 +16,16 @@ func (this *PeerList) GetInstance(id string) *PeerListInstance {
 
 func (this *PeerList) RemoveInstance(id string) {
 	delete(this.instances, id)
+}
+
+func (this *PeerList) RemoteProcedureCall(to types.Address, method string, msg []byte) error {
+	return nil
+}
+
+func (this *PeerList) BroadCastRPC(method string, msg []byte) error {
+	return nil
+}
+
+func (this *PeerList) AddChannel(name string, ch chan MessageInfo) {
+	this.channels[name] = ch
 }

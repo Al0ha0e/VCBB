@@ -41,7 +41,8 @@ func (this *Tracker) serve() {
 			if err != nil {
 				continue
 			}
-			this.peerList.SendMsgTo(req.From, resb)
+			this.peerList.RemoteProcedureCall(req.From, this.ID, peer_list.InfoRes, resb)
+			//this.peerList.SendMsgTo(req.From, resb)
 		case <-this.TerminateSignal:
 			return
 		}
