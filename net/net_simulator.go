@@ -1,30 +1,17 @@
 package net
 
-import (
-	"vcbb/event"
-)
-
-const (
-	SimuNetMsg = "SimulatorNetMessage"
-)
-
 type NetSimulator struct {
-	eventSystem *event.EventSystem
-	userList    map[string]chan string
+	userList map[string]chan []byte
 }
 
-func NewNetSimulator(eventSystem *event.EventSystem) *NetSimulator {
-	return &NetSimulator{eventSystem: eventSystem}
+func NewNetSimulator() *NetSimulator {
+	return &NetSimulator{userList: make(map[string]chan []byte)}
 }
 
-func (this *NetSimulator) RegisterUser(name string, ch chan string) {
+func (this *NetSimulator) RegisterUser(name string, ch chan []byte) {
 	this.userList[name] = ch
 }
 
-func (this *NetSimulator) BroadCast(content string) {
-	this.eventSystem.Emit(SimuNetMsg, content)
-}
-
-func (this *NetSimulator) SendMessageTo(name string, content string) {
+func (this *NetSimulator) SendMessageTo(name string, content []byte) {
 	this.userList[name] <- content
 }

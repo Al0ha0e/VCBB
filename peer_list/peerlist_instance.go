@@ -1,6 +1,10 @@
 package peer_list
 
-import "github.com/Al0ha0e/vcbb/types"
+import (
+	"encoding/json"
+
+	"github.com/Al0ha0e/vcbb/types"
+)
 
 const (
 	DataReq            = "DataReq"     //DATA STORE SEND TO DATA PROVIDER TO GET DATA
@@ -17,37 +21,38 @@ type PeerListInstance struct {
 	ID       string
 	PL       *PeerList
 	channels map[string]chan MessageInfo
-	//DataReq     chan MessageInfo
-	//DataRecv    chan MessageInfo
-	//MetaDataReq chan MessageInfo
+	bus      chan []byte
 }
 
-/*
-func (this *PeerListInstance) Init(datareq chan MessageInfo, datarecv chan MessageInfo, metadatareq chan MessageInfo) {
-	this.DataReq = datareq
-	this.DataRecv = datarecv
-	this.MetaDataReq = metadatareq
-}*/
+func NewPeerListInstance(id string, pl *PeerList) *PeerListInstance {
+	return &PeerListInstance{
+		ID:       id,
+		PL:       pl,
+		channels: make(map[string]chan MessageInfo),
+		bus:      make(chan []byte, 10),
+	}
+}
+
+func (this *PeerListInstance) HandleMsg(meth string, msg MessageInfo) {
+	method := this.channels[meth]
+	if method != nil {
+		method <- msg
+	}
+}
 
 func (this *PeerListInstance) AddChannel(name string, ch chan MessageInfo) {
 	this.channels[name] = ch
 }
-func (this *PeerListInstance) RemoteProcedureCall(to types.Address, session, method string, msg []byte) error {
-	return nil
-}
-func (this *PeerListInstance) BroadCastRPC(session, method string, msg []byte) error {
+func (this *PeerListInstance) RemoteProcedureCall(to types.Address, method string, msg []byte) error {
+	pkg := newMessage(this.PL.Address, to, this.ID, method, msg, 1)
+	pkgb, err := json.Marshal(pkg)
+	if err != nil {
+		return err
+	}
+	this.PL.netService.SendMessageTo(to.ToString(), pkgb)
 	return nil
 }
 
-/*
-func (this *PeerListInstance) BroadCast([]byte) error {
-	return nil
-}
-
-func (this *PeerListInstance) SendMsgTo(to types.Address, msg []byte) {
-
-}
-*/
 func (this *PeerListInstance) SendDataPackTo(to types.Address, pack types.DataPack) {
 
 }
