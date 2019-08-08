@@ -20,28 +20,30 @@ const (
 type PeerListInstance struct {
 	ID       string
 	PL       *PeerList
-	channels map[string]chan MessageInfo
-	bus      chan []byte
+	callBack map[string]func(MessageInfo)
+	//channels map[string]chan MessageInfo
+	bus chan []byte
 }
 
 func NewPeerListInstance(id string, pl *PeerList) *PeerListInstance {
 	return &PeerListInstance{
 		ID:       id,
 		PL:       pl,
-		channels: make(map[string]chan MessageInfo),
-		bus:      make(chan []byte, 10),
+		callBack: make(map[string]func(MessageInfo)),
+		//channels: make(map[string]chan MessageInfo),
+		bus: make(chan []byte, 10),
 	}
 }
 
 func (this *PeerListInstance) HandleMsg(meth string, msg MessageInfo) {
-	method := this.channels[meth]
+	method := this.callBack[meth]
 	if method != nil {
-		method <- msg
+		go method(msg)
 	}
 }
 
-func (this *PeerListInstance) AddChannel(name string, ch chan MessageInfo) {
-	this.channels[name] = ch
+func (this *PeerListInstance) AddCallBack(name string, cb func(MessageInfo)) {
+	this.callBack[name] = cb
 }
 func (this *PeerListInstance) RemoteProcedureCall(to types.Address, method string, msg []byte) error {
 	pkg := newMessage(this.PL.Address, to, this.ID, method, msg, 1)
@@ -61,10 +63,11 @@ func (this *PeerListInstance) UpdatePunishedPeers(map[string][]types.Address) {
 
 }
 
+/*
 func (this *PeerListInstance) Close() {
 	this.PL.RemoveInstance(this.ID)
 	for k, v := range this.channels {
 		close(v)
 		delete(this.channels, k)
 	}
-}
+}*/

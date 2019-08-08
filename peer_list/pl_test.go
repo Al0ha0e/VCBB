@@ -21,33 +21,23 @@ func TestPeerList(t *testing.T) {
 	pls[0].peers = append(pls[0].peers, []types.Address{addrs[1], addrs[2]}...)
 	pls[1].peers = append(pls[1].peers, []types.Address{addrs[0], addrs[2]}...)
 	pls[2].peers = append(pls[2].peers, []types.Address{addrs[0], addrs[1]}...)
-	var chs [3]chan MessageInfo
 	for i := 0; i < 2; i++ {
-		chs[i] = make(chan MessageInfo, 1)
-		pls[i].AddChannel("test", chs[i])
-		go func(id int) {
-			for {
-				msg := <-chs[id]
-				fmt.Println(id, msg.From.ToString(), msg.Content)
-			}
-		}(i)
+		id := i
+		pls[i].AddCallBack("test", func(msg MessageInfo) {
+			fmt.Println(id, msg.From.ToString(), msg.Content)
+		})
 		pls[i].Run()
 	}
 	pls[0].RemoteProcedureCall(addrs[1], "test", []byte{1, 2, 3})
 	pls[1].RemoteProcedureCall(addrs[0], "test", []byte{4, 5, 6})
 	//pls[2].BroadCastRPC("test", []byte{9, 9, 9, 0}, 3)\
 	var sess [2]*PeerListInstance
-	var chh [2]chan MessageInfo
 	for i := 0; i < 2; i++ {
-		chh[i] = make(chan MessageInfo, 1)
+		id := i
 		sess[i] = pls[i].GetInstance("mmm")
-		sess[i].AddChannel("test2", chh[i])
-		go func(id int) {
-			for {
-				msg := <-chh[id]
-				fmt.Println(id, msg.From.ToString(), msg.Content)
-			}
-		}(i)
+		sess[i].AddCallBack("test2", func(msg MessageInfo) {
+			fmt.Println(id, msg.From.ToString(), msg.Content)
+		})
 	}
 	sess[0].RemoteProcedureCall(addrs[1], "test2", []byte{1, 1, 1})
 	sess[1].RemoteProcedureCall(addrs[0], "test2", []byte{3, 3, 3})

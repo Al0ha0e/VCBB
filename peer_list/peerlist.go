@@ -9,10 +9,11 @@ import (
 )
 
 type PeerList struct {
-	Address    types.Address
-	peers      []types.Address
-	instances  map[string]*PeerListInstance
-	channels   map[string]chan MessageInfo
+	Address   types.Address
+	peers     []types.Address
+	instances map[string]*PeerListInstance
+	callBack  map[string]func(MessageInfo)
+	//channels   map[string]chan MessageInfo
 	netService *net.NetSimulator
 	bus        chan []byte
 	stopSignal chan struct{}
@@ -20,10 +21,11 @@ type PeerList struct {
 
 func NewPeerList(addr types.Address, ns *net.NetSimulator) *PeerList {
 	return &PeerList{
-		Address:    addr,
-		peers:      make([]types.Address, 0, 10),
-		instances:  make(map[string]*PeerListInstance),
-		channels:   make(map[string]chan MessageInfo),
+		Address:   addr,
+		peers:     make([]types.Address, 0, 10),
+		instances: make(map[string]*PeerListInstance),
+		callBack:  make(map[string]func(MessageInfo)),
+		//channels:   make(map[string]chan MessageInfo),
 		netService: ns,
 		bus:        make(chan []byte, 10),
 		stopSignal: make(chan struct{}, 1),
@@ -53,9 +55,9 @@ func (this *PeerList) Serve() {
 				Content: msgobj.Content,
 			}
 			if msgobj.Session == "global" {
-				method := this.channels[msgobj.Method]
+				method := this.callBack[msgobj.Method]
 				if method != nil {
-					method <- msginfo
+					go method(msginfo)
 				}
 			} else {
 				sess := this.instances[msgobj.Session]
@@ -99,6 +101,6 @@ func (this *PeerList) BroadCastRPC(method string, msg []byte, dist uint8) (*[]ty
 	return &this.peers, nil
 }
 
-func (this *PeerList) AddChannel(name string, ch chan MessageInfo) {
-	this.channels[name] = ch
+func (this *PeerList) AddCallBack(name string, cb func(MessageInfo)) {
+	this.callBack[name] = cb
 }
