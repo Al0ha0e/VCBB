@@ -28,19 +28,20 @@ func TestPeerList(t *testing.T) {
 		})
 		pls[i].Run()
 	}
-	pls[0].RemoteProcedureCall(addrs[1], "test", []byte{1, 2, 3})
-	pls[1].RemoteProcedureCall(addrs[0], "test", []byte{4, 5, 6})
+	pls[0].RemoteProcedureCall(addrs[1], Global, "test", []byte{1, 2, 3})
+	pls[1].RemoteProcedureCall(addrs[0], Global, "test", []byte{4, 5, 6})
 	//pls[2].BroadCastRPC("test", []byte{9, 9, 9, 0}, 3)\
-	var sess [2]*PeerListInstance
-	for i := 0; i < 2; i++ {
-		id := i
-		sess[i] = pls[i].GetInstance("mmm")
-		sess[i].AddCallBack("test2", func(msg MessageInfo) {
-			fmt.Println(id, msg.From.ToString(), msg.Content)
-		})
-	}
-	sess[0].RemoteProcedureCall(addrs[1], "test2", []byte{1, 1, 1})
-	sess[1].RemoteProcedureCall(addrs[0], "test2", []byte{3, 3, 3})
+	/*
+		var sess [2]*PeerListInstance
+		for i := 0; i < 2; i++ {
+			id := i
+			sess[i] = pls[i].GetInstance("mmm")
+			sess[i].AddCallBack("test2", func(msg MessageInfo) {
+				fmt.Println(id, msg.From.ToString(), msg.Content)
+			})
+		}
+		sess[0].RemoteProcedureCall(addrs[1], "test2", []byte{1, 1, 1})
+		sess[1].RemoteProcedureCall(addrs[0], "test2", []byte{3, 3, 3})*/
 	for {
 	}
 }

@@ -2,10 +2,13 @@ package peer_list
 
 import (
 	"encoding/json"
-	"fmt"
 	"vcbb/net"
 
 	"github.com/Al0ha0e/vcbb/types"
+)
+
+const (
+	Global = "global"
 )
 
 type PeerList struct {
@@ -45,22 +48,19 @@ func (this *PeerList) Serve() {
 		case msg := <-this.bus:
 			var msgobj Message
 			json.Unmarshal(msg, &msgobj)
-			fmt.Println(msgobj)
+			//fmt.Println(msgobj)
 			msgobj.Dist--
 			if msgobj.Dist > 0 {
 				this.BroadCastRPC(msgobj.Method, msgobj.Content, msgobj.Dist)
 			}
-			msginfo := MessageInfo{
-				From:    msgobj.From,
-				Content: msgobj.Content,
-			}
-			if msgobj.Session == "global" {
+			msginfo := NewMessageInfo(msgobj.From, msgobj.FromSession, msgobj.Content)
+			if msgobj.ToSession == Global {
 				method := this.callBack[msgobj.Method]
 				if method != nil {
 					go method(msginfo)
 				}
 			} else {
-				sess := this.instances[msgobj.Session]
+				sess := this.instances[msgobj.ToSession]
 				if sess != nil {
 					sess.HandleMsg(msgobj.Method, msginfo)
 				}
@@ -79,28 +79,34 @@ func (this *PeerList) RemoveInstance(id string) {
 	delete(this.instances, id)
 }
 
-func (this *PeerList) RemoteProcedureCall(to types.Address, method string, msg []byte) error {
-	pkg := newMessage(this.Address, to, "global", method, msg, 1)
+func (this *PeerList) RemoteProcedureCall(to types.Address, toSession, method string, msg []byte) error {
+	return this.BasicRemoteProcedureCall(to, Global, toSession, method, msg, 1)
+}
+
+func (this *PeerList) BroadCastRPC(method string, msg []byte, dist uint8) ([]types.Address, error) {
+	for _, peer := range this.peers {
+		err := this.BasicRemoteProcedureCall(peer, Global, Global, method, msg, dist)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return this.peers, nil
+}
+
+func (this *PeerList) Reply(info MessageInfo, method string, msg []byte) error {
+	return this.RemoteProcedureCall(info.From, info.FromSession, method, msg)
+}
+
+func (this *PeerList) AddCallBack(name string, cb func(MessageInfo)) {
+	this.callBack[name] = cb
+}
+
+func (this *PeerList) BasicRemoteProcedureCall(to types.Address, frsess, tosess, method string, msg []byte, dist uint8) error {
+	pkg := newMessage(this.Address, to, frsess, tosess, method, msg, dist)
 	pkgb, err := json.Marshal(pkg)
 	if err != nil {
 		return err
 	}
 	this.netService.SendMessageTo(to.ToString(), pkgb)
 	return nil
-}
-
-func (this *PeerList) BroadCastRPC(method string, msg []byte, dist uint8) (*[]types.Address, error) {
-	for _, peer := range this.peers {
-		pkg := newMessage(this.Address, peer, "global", method, msg, dist)
-		pkgb, err := json.Marshal(pkg)
-		if err != nil {
-			return nil, err
-		}
-		this.netService.SendMessageTo(peer.ToString(), pkgb)
-	}
-	return &this.peers, nil
-}
-
-func (this *PeerList) AddCallBack(name string, cb func(MessageInfo)) {
-	this.callBack[name] = cb
 }

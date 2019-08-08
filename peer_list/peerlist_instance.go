@@ -1,8 +1,6 @@
 package peer_list
 
 import (
-	"encoding/json"
-
 	"github.com/Al0ha0e/vcbb/types"
 )
 
@@ -45,14 +43,12 @@ func (this *PeerListInstance) HandleMsg(meth string, msg MessageInfo) {
 func (this *PeerListInstance) AddCallBack(name string, cb func(MessageInfo)) {
 	this.callBack[name] = cb
 }
-func (this *PeerListInstance) RemoteProcedureCall(to types.Address, method string, msg []byte) error {
-	pkg := newMessage(this.PL.Address, to, this.ID, method, msg, 1)
-	pkgb, err := json.Marshal(pkg)
-	if err != nil {
-		return err
-	}
-	this.PL.netService.SendMessageTo(to.ToString(), pkgb)
-	return nil
+func (this *PeerListInstance) GlobalRemoteProcedureCall(to types.Address, method string, msg []byte) error {
+	return this.PL.BasicRemoteProcedureCall(to, this.ID, Global, method, msg, 1)
+}
+
+func (this *PeerListInstance) Reply(info MessageInfo, metod string, msg []byte) error {
+	return this.PL.BasicRemoteProcedureCall(info.From, this.ID, this.ID, metod, msg, 1)
 }
 
 func (this *PeerListInstance) SendDataPackTo(to types.Address, pack types.DataPack) {
