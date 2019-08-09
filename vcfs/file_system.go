@@ -23,6 +23,7 @@ const (
 	fPossess
 	fWaiting
 	fPurchasing
+	fToPurchase
 )
 
 type fileInfo struct {
@@ -61,4 +62,8 @@ func NewFileSystem(eg KVStore, pl *peer_list.PeerList) *FileSystem {
 
 func (this *FileSystem) Serve() {
 	this.peerList.AddCallBack("HandleTrackerReq", this.HandleTrackerReq)
+	this.peerList.AddCallBack("HandleSyncReq", this.HandleSyncReq)
+	this.peerList.AddCallBack("HandleSyncRes", this.HandleSyncRes)
+	this.peerList.AddCallBack("HandleSyncFileArrive", this.HandleSyncFileArrive)
+	this.peerList.AddCallBack("HandleFilePurchaseReq", this.HandleFilePurchaseReq)
 }

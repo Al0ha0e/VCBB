@@ -32,5 +32,5 @@ func (this *FileSystem) HandleTrackerReq(req peer_list.MessageInfo) {
 	if err != nil {
 		return
 	}
-	this.peerList.Reply(req, "", resb)
+	this.peerList.Reply(req, "HandleTrackerRes", resb)
 }
