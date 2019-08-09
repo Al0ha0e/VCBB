@@ -7,30 +7,39 @@ import (
 	"github.com/Al0ha0e/vcbb/types"
 )
 
-type fileState uint8
+type peerState uint8
 
 const (
-	unkown fileState = iota
+	unkown peerState = iota
 	possess
 	waiting
 	sending
 )
 
+type fileState uint8
+
+const (
+	fUnkown fileState = iota
+	fPossess
+	fWaiting
+	fPurchasing
+)
+
 type fileInfo struct {
-	id        string
-	local     bool
-	peer      []types.Address
-	peerState map[string]fileState
-	lock      sync.Mutex
-	rwlock    sync.RWMutex
+	id     string
+	state  fileState //TODO: CHECK STATE
+	peer   []types.Address
+	ps     map[string]peerState //TODO: CHECK STATE
+	lock   sync.Mutex
+	rwlock sync.RWMutex
 }
 
-func NewFileInfo(id string, local bool) *fileInfo {
+func NewFileInfo(id string, state fileState) *fileInfo {
 	return &fileInfo{
-		id:        id,
-		local:     local,
-		peer:      make([]types.Address, 0, 5),
-		peerState: make(map[string]fileState),
+		id:    id,
+		state: state,
+		peer:  make([]types.Address, 0, 5),
+		ps:    make(map[string]peerState),
 	}
 }
 

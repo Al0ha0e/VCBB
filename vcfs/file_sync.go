@@ -4,7 +4,19 @@ import (
 	"encoding/json"
 
 	"github.com/Al0ha0e/vcbb/peer_list"
+	"github.com/Al0ha0e/vcbb/types"
 )
+
+func (this *FileSystem) SyncFile(keys []string, siz []uint64, peers []types.Address) {
+	req := syncReq{
+		Keys: keys,
+		Size: siz,
+	}
+	reqb, _ := json.Marshal(req)
+	for _, peer := range peers {
+		this.peerList.RemoteProcedureCall(peer, peer_list.Global, "HandleSyncReq", reqb)
+	}
+}
 
 func (this *FileSystem) HandleSyncReq(req peer_list.MessageInfo) {
 	var reqobj syncReq
@@ -18,25 +30,26 @@ func (this *FileSystem) HandleSyncReq(req peer_list.MessageInfo) {
 		this.lock.Lock()
 		info := this.files[id]
 		if info == nil {
-			ninfo := NewFileInfo(id, false)
+			ninfo := NewFileInfo(id, fWaiting)
 			ninfo.peer[0] = req.From
-			ninfo.peerState[fr] = possess
+			ninfo.ps[fr] = possess
 			this.files[id] = ninfo
 			info = ninfo
 		}
 		this.lock.Unlock()
 		info.lock.Lock()
-		prstate := info.peerState[fr]
+		prstate := info.ps[fr]
 		if prstate != possess {
-			info.peerState[fr] = possess
+			info.ps[fr] = possess
 			info.peer = append(info.peer, req.From)
 		}
-		if !info.local {
+		if !(info.state == fPossess) {
 			if !this.engine.CanSet(reqobj.Size[i]) {
 				info.lock.Unlock()
 				continue
 			}
-			info.peerState[fr] = sending
+			info.ps[fr] = sending
+			info.state = fWaiting
 			retkeys = append(retkeys, id)
 		}
 		info.lock.Unlock()
@@ -62,7 +75,7 @@ func (this *FileSystem) HandleSyncRes(req peer_list.MessageInfo) {
 	for _, key := range reqobj.Keys {
 		info := this.files[key]
 		info.lock.Lock()
-		if info.peerState[fr] != waiting {
+		if info.ps[fr] != waiting {
 			info.lock.Unlock()
 			retfiles = append(retfiles, nil)
 			continue
@@ -73,7 +86,7 @@ func (this *FileSystem) HandleSyncRes(req peer_list.MessageInfo) {
 			retfiles = append(retfiles, nil)
 			continue
 		}
-		info.peerState[fr] = possess
+		info.ps[fr] = possess
 		info.peer = append(info.peer, req.From)
 		retfiles = append(retfiles, file)
 		info.lock.Unlock()
@@ -97,19 +110,21 @@ func (this *FileSystem) HandleSyncFileArrive(req peer_list.MessageInfo) {
 		info := this.files[key]
 		if info != nil {
 			info.lock.Lock()
-			if info.peerState[fr] != sending {
+			if info.ps[fr] != sending {
 				info.lock.Unlock()
 				continue
 			}
-			info.peerState[fr] = possess
+			info.ps[fr] = possess
 			file := reqobj.Files[i]
+			//TODO: FILE CHECK
 			if file != nil {
 				err := this.engine.Set(key, file)
 				if err != nil {
 					info.lock.Unlock()
 					continue
 				}
-				info.local = true
+				info.state = fPossess
+				// TODO: DISPATCH FILE ARRIVE EVENT
 			}
 			info.lock.Unlock()
 		}
