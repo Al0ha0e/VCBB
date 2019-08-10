@@ -4,15 +4,16 @@ import (
 	"fmt"
 
 	"github.com/Al0ha0e/vcbb/blockchain"
-	"github.com/Al0ha0e/vcbb/data"
 	"github.com/Al0ha0e/vcbb/peer_list"
 	"github.com/Al0ha0e/vcbb/types"
+	"github.com/Al0ha0e/vcbb/vcfs"
 )
 
 type Scheduler struct {
 	ID                      string
 	bcHandler               blockchain.BlockChainHandler
 	peerList                *peer_list.PeerList
+	fileSystem              *vcfs.FileSystem
 	graph                   scheduleGraph
 	result                  chan *JobMeta
 	originalPartitions      []string
@@ -25,6 +26,7 @@ func NewScheduler(
 	id string,
 	bchandler blockchain.BlockChainHandler,
 	peerList *peer_list.PeerList,
+	fileSystem *vcfs.FileSystem,
 	graph scheduleGraph,
 	oriPartitions []string,
 	oridata types.DataSource,
@@ -37,6 +39,7 @@ func NewScheduler(
 		ID:                 id,
 		bcHandler:          bchandler,
 		peerList:           peerList,
+		fileSystem:         fileSystem,
 		graph:              graph,
 		result:             make(chan *JobMeta, 100),
 		originalPartitions: oriPartitions,

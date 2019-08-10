@@ -1,6 +1,7 @@
 package vcfs
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/Al0ha0e/vcbb/peer_list"
@@ -66,4 +67,18 @@ func (this *FileSystem) Serve() {
 	this.peerList.AddCallBack("HandleSyncRes", this.HandleSyncRes)
 	this.peerList.AddCallBack("HandleSyncFileArrive", this.HandleSyncFileArrive)
 	this.peerList.AddCallBack("HandleFilePurchaseReq", this.HandleFilePurchaseReq)
+}
+
+func (this *FileSystem) Set(key string, value []byte) error {
+	info := this.files[key]
+	info.lock.Lock()
+	defer info.lock.Unlock()
+	if info.state == fPossess {
+		return fmt.Errorf("file %s has already setteled", key)
+	}
+	return this.engine.Set(key, value)
+}
+
+func (this *FileSystem) Get(key string) ([]byte, error) {
+	return this.engine.Get(key)
 }
