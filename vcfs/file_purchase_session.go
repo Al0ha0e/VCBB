@@ -30,6 +30,7 @@ type FilePurchaseSession struct {
 	peerList          *peer_list.PeerListInstance
 	keyMap            map[string]uint8
 	parts             []filePart
+	partCnt           uint8
 	peers             []map[string]uint8
 	peerChan          []chan types.Address
 	stopSignal        []chan struct{}
@@ -45,6 +46,7 @@ func NewFilePurchaseSession(id string, fs *FileSystem, parts []filePart, resultC
 		id:         id,
 		fileSystem: fs,
 		parts:      parts,
+		partCnt:    uint8(len(parts)),
 		keyMap:     make(map[string]uint8),
 		resultChan: resultChan,
 	}
@@ -145,14 +147,18 @@ func (this *FilePurchaseSession) HandlePurchaseRes(res peer_list.MessageInfo) {
 			continue
 		}
 		info.state = fPossess
-		this.resultChan <- filePurchaseResult{
-			key:     key,
-			success: true,
-		}
 		var sign struct{}
 		this.stopSignal[id] <- sign
 		close(this.stopSignal[id])
 		close(this.peerChan[id])
+		this.partCnt--
+		if this.partCnt==0 {
+			this.Terminate()
+		}
+		this.resultChan <- filePurchaseResult{
+			key:     key,
+			success: true,
+		}
 		info.lock.Unlock()
 	}
 }
@@ -194,14 +200,18 @@ func (this *FilePurchaseSession) RoundCheck() {
 				if info.state == fPossess {
 					_, ok := <-this.peerChan[id]
 					if ok {
-						this.resultChan <- filePurchaseResult{
-							key:     key,
-							success: true,
-						}
 						var sign struct{}
 						this.stopSignal[id] <- sign
 						close(this.stopSignal[id])
 						close(this.peerChan[id])
+						this.partCnt--
+						if this.partCnt==0 {
+							this.Terminate()
+						}
+						this.resultChan <- filePurchaseResult{
+							key:     key,
+							success: true,
+						}
 					}
 				}
 				info.rwlock.RUnlock()
@@ -214,4 +224,6 @@ func (this *FilePurchaseSession) Terminate() {
 	var sign struct{}
 	this.rdCheckStopSignal <- sign
 	close(this.rdCheckStopSignal)
+	this.fileSystem.peerList.RemoveInstance(this.id)
+	//TODO: UPDATE FILE INFO PEER STATE
 }

@@ -3,15 +3,20 @@ package vcfs
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/Al0ha0e/vcbb/peer_list"
 )
+
+const waitRoundCheckDuration int64 = 10000
 
 func (this *FileSystem) FetchFiles(parts []filePart, okSignal chan struct{}) {
 	var waitingCount uint8 = 0
 	var waiting map[string]bool
 	var purchase map[string]bool
 	purchaseList := make([]filePart, 0)
+	var lock sync.Mutex
 	for _, part := range parts {
 		np := filePart{
 			keys:  make([]string, 0),
@@ -41,6 +46,7 @@ func (this *FileSystem) FetchFiles(parts []filePart, okSignal chan struct{}) {
 	}
 	resultChan := make(chan filePurchaseResult, 5)
 	session := NewFilePurchaseSession("", this, purchaseList, resultChan)
+	stopSignal := make(chan struct{}, 1)
 	go func() {
 		for {
 			result, ok := <-resultChan
@@ -48,19 +54,41 @@ func (this *FileSystem) FetchFiles(parts []filePart, okSignal chan struct{}) {
 				return
 			}
 			if !result.success {
+				// TODO ERR HANDLE
 				fmt.Println("TODO")
 			} else {
 				waitingCount--
 				if waitingCount == 0 {
+					var ret struct{}
+					stopSignal <- ret
+					close(stopSignal)
 
+					return
 				}
 			}
 		}
 	}()
-	go func() {
-		///TODO ROUND CHECK
-	}()
 	session.StartSession()
+	for {
+		over := false
+		select {
+		case <-stopSignal:
+			over = true
+			break
+		default:
+			time.Sleep(time.Duration(waitRoundCheckDuration))
+			lock.Lock()
+			//TODO: CHECK WAITINg STATE
+			lock.Unlock()
+		}
+		if over {
+			break
+		}
+	}
+	close(resultChan)
+	var ret struct{}
+	okSignal <- ret
+	close(okSignal)
 }
 
 func (this *FileSystem) HandleFilePurchaseReq(req peer_list.MessageInfo) {
