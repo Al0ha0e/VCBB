@@ -10,16 +10,16 @@ import (
 )
 
 type Scheduler struct {
-	ID                      string
-	bcHandler               blockchain.BlockChainHandler
-	peerList                *peer_list.PeerList
-	fileSystem              *vcfs.FileSystem
-	graph                   scheduleGraph
-	result                  chan *JobMeta
-	originalPartitions      []string
-	originalData            types.DataSource
-	oriDataTransportSession *data.DataTransportSession
-	originalDataTracker     *data.Tracker
+	ID                 string
+	bcHandler          blockchain.BlockChainHandler
+	peerList           *peer_list.PeerList
+	fileSystem         *vcfs.FileSystem
+	graph              scheduleGraph
+	result             chan *JobMeta
+	originalPartitions []string
+	originalData       types.DataSource
+	//oriDataTransportSession *data.DataTransportSession
+	//originalDataTracker     *data.Tracker
 }
 
 func NewScheduler(
@@ -52,6 +52,7 @@ func (this *Scheduler) DispatchJob(id string, node *scheduleNode) error {
 		id, //TODO: RANDOMID
 		this,
 		node,
+		node.minAnswerCount,
 		/*
 			[]*Dependency{oriDep},
 			node.partitions,
@@ -73,13 +74,17 @@ func (this *Scheduler) DispatchJob(id string, node *scheduleNode) error {
 * watch the running state
  */
 func (this *Scheduler) Dispatch() error {
-	this.oriDataTransportSession = data.NewDataTransportSession("ftp:"+this.ID, this.peerList, this.originalData)
-	_, err := this.oriDataTransportSession.StartSession() //TODO:return value
-	if err != nil {
-		return err
+	tot := this.originalData.GetTotalNum()
+	for i := uint64(0); i < tot; i++ {
+		sing, err := this.originalData.GetSingle(i)
+		if err != nil {
+			return err
+		}
+		err = this.fileSystem.Set(sing.GetHash(), sing.GetValue())
+		if err != nil && err.Error() != "file has already setteled" {
+			return err
+		}
 	}
-	this.originalDataTracker = data.NewTracker("tck:"+this.ID, this.oriDataTransportSession, this.peerList)
-	this.originalDataTracker.StartTracker()
 	oriDep := new(Dependency)
 	oriDep.DependencyJobMeta = &JobMeta{
 		Id:               this.ID,
@@ -90,7 +95,7 @@ func (this *Scheduler) Dispatch() error {
 	for _, node := range this.graph {
 		if node.indeg+node.controlIndeg == 0 {
 			node.dependencies = []*Dependency{oriDep}
-			err = this.DispatchJob("RANDOM ID", node)
+			err := this.DispatchJob("RANDOM ID", node)
 			if err != nil {
 				return err
 			}

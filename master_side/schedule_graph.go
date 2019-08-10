@@ -15,6 +15,7 @@ type scheduleNode struct {
 	controlOutdeg       uint64
 	controlInNodes      []*scheduleNode
 	controlOutNodes     []*scheduleNode
+	minAnswerCount      uint8
 }
 
 type scheduleGraph []*scheduleNode

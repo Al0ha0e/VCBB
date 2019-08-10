@@ -11,14 +11,14 @@ import (
 
 const waitRoundCheckDuration int64 = 10000
 
-func (this *FileSystem) FetchFiles(parts []filePart, okSignal chan struct{}) {
+func (this *FileSystem) FetchFiles(parts []FilePart, okSignal chan struct{}) {
 	var waitingCount uint8 = 0
 	var waiting map[string]bool
 	var purchase map[string]bool
-	purchaseList := make([]filePart, 0)
+	purchaseList := make([]FilePart, 0)
 	var lock sync.Mutex
 	for _, part := range parts {
-		np := filePart{
+		np := FilePart{
 			keys:  make([]string, 0),
 			peers: part.peers,
 		}

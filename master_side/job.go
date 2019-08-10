@@ -29,12 +29,12 @@ type Job struct {
 	PeerList            *peer_list.PeerListInstance
 	SchNode             *scheduleNode
 	ComputationContract *blockchain.ComputationContract
-	ParticipantState    map[types.Address]PtState
-	PartitionDistribute []uint64
 	AnswerDistribute    map[string][]types.Address
-	MetaDataReq         chan peer_list.MessageInfo
 	ContractStateUpdate chan *blockchain.ComputationContractUpdate
-	TerminateSignal     chan struct{}
+	AnswerCnt           uint8
+	MinAnswerCnt        uint8
+	MaxAnswerCnt        uint8
+	MaxAnswer           string
 	//Dependencies        []*Dependency//
 	//Partitions          []string//
 	//Code                string//
@@ -53,13 +53,14 @@ type JobMeta struct {
 	RootHash         string          `json:"root"`
 }
 
-func NewJob(id string, sch *Scheduler, schnode *scheduleNode /*dependencies []*Dependency, partitions []string, code, basetest, hardwarereq string*/) *Job {
+func NewJob(id string, sch *Scheduler, schnode *scheduleNode, minAnsCnt uint8 /*dependencies []*Dependency, partitions []string, code, basetest, hardwarereq string*/) *Job {
 	return &Job{
-		ID:       id,
-		State:    Preparing,
-		Sch:      sch,
-		PeerList: sch.peerList.GetInstance(id),
-		SchNode:  schnode,
+		ID:           id,
+		State:        Preparing,
+		Sch:          sch,
+		PeerList:     sch.peerList.GetInstance(id),
+		SchNode:      schnode,
+		MinAnswerCnt: minAnsCnt,
 		//Dependencies:       dependencies,
 		//Partitions:         partitions,
 		//Code:               code,
@@ -71,11 +72,5 @@ func NewJob(id string, sch *Scheduler, schnode *scheduleNode /*dependencies []*D
 func (this *Job) Init() {
 	this.ContractStateUpdate = make(chan *blockchain.ComputationContractUpdate, 1)
 	this.ComputationContract = blockchain.NewComputationContract(this.Sch.bcHandler, this.ContractStateUpdate)
-	this.ParticipantState = make(map[types.Address]PtState)
-	this.PartitionDistribute = make([]uint64, len(this.SchNode.partitions))
 	this.AnswerDistribute = make(map[string][]types.Address)
-	this.MetaDataReq = make(chan peer_list.MessageInfo, 1)
-	this.TerminateSignal = make(chan struct{}, 2)
-	this.PeerList.AddChannel(peer_list.MetaDataReq, this.MetaDataReq)
-	//this.PeerList.Init(nil, nil, this.MetaDataReq)
 }

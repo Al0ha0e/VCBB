@@ -74,7 +74,7 @@ func (this *FileSystem) Set(key string, value []byte) error {
 	info.lock.Lock()
 	defer info.lock.Unlock()
 	if info.state == fPossess {
-		return fmt.Errorf("file %s has already setteled", key)
+		return fmt.Errorf("file has already setteled")
 	}
 	return this.engine.Set(key, value)
 }

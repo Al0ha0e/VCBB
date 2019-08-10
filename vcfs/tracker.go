@@ -22,6 +22,9 @@ func (this *FileSystem) HandleTrackerReq(req peer_list.MessageInfo) {
 			retpeer[i] = make([]types.Address, 0)
 		} else {
 			retpeer[i] = info.peer
+			if info.state == fPossess {
+				retpeer[i] = append(retpeer[i], this.peerList.Address)
+			}
 		}
 	}
 	res := trackerRes{

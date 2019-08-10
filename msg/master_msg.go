@@ -10,6 +10,8 @@ type JobMeta struct {
 }
 
 type ComputationReq struct {
+	Id           string        `json:"id"`
+	Master       types.Address `json:"master"`
 	ContractAddr types.Address `json:"address"`
 	PartitionCnt uint64        `json:"partitionCnt"`
 	Hardware     string        `json:"hardware"`

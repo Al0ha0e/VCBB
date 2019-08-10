@@ -19,7 +19,7 @@ type filePurchaseResult struct {
 	success bool
 }
 
-type filePart struct {
+type FilePart struct {
 	keys  []string
 	peers []types.Address
 }
@@ -29,7 +29,7 @@ type FilePurchaseSession struct {
 	fileSystem        *FileSystem
 	peerList          *peer_list.PeerListInstance
 	keyMap            map[string]uint8
-	parts             []filePart
+	parts             []FilePart
 	partCnt           uint8
 	peers             []map[string]uint8
 	peerChan          []chan types.Address
@@ -41,7 +41,7 @@ type FilePurchaseSession struct {
 	contract          types.Address
 }
 
-func NewFilePurchaseSession(id string, fs *FileSystem, parts []filePart, resultChan chan filePurchaseResult) *FilePurchaseSession {
+func NewFilePurchaseSession(id string, fs *FileSystem, parts []FilePart, resultChan chan filePurchaseResult) *FilePurchaseSession {
 	ret := &FilePurchaseSession{
 		id:         id,
 		fileSystem: fs,
@@ -152,7 +152,7 @@ func (this *FilePurchaseSession) HandlePurchaseRes(res peer_list.MessageInfo) {
 		close(this.stopSignal[id])
 		close(this.peerChan[id])
 		this.partCnt--
-		if this.partCnt==0 {
+		if this.partCnt == 0 {
 			this.Terminate()
 		}
 		this.resultChan <- filePurchaseResult{
@@ -205,7 +205,7 @@ func (this *FilePurchaseSession) RoundCheck() {
 						close(this.stopSignal[id])
 						close(this.peerChan[id])
 						this.partCnt--
-						if this.partCnt==0 {
+						if this.partCnt == 0 {
 							this.Terminate()
 						}
 						this.resultChan <- filePurchaseResult{
