@@ -61,11 +61,14 @@ func (this *Job) handleMetaDataRes(res peer_list.MessageInfo) {
 		}
 		return
 	}
-	/*
-	oksign := make(chan struct{},1)
-	part := make([]vcfs.)
-	this.sch.fileSystem.FetchFiles(,oksign)
-	<-oksign*/
+	oksign := make(chan struct{}, 1)
+	parts := make([]vcfs.FilePart, len(resobj.DependencyMeta))
+	for i, meta := range resobj.DependencyMeta {
+		parts[i].peers = meta.Participants
+		parts[i].keys = meta.PartitionAnswers
+	}
+	this.sch.fileSystem.FetchFiles(parts, oksign)
+	<-oksign
 }
 
 func (this *Job) terminate() {

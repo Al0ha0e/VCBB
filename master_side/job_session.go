@@ -29,8 +29,8 @@ func (this *Job) StartSession(sch *Scheduler) error {
 //pack contract address,hardware requirement and basetest into a request message
 func (this *Job) getComputationReq(addr types.Address) ([]byte, error) {
 	ret := msg.ComputationReq{
-		//ID: this.ID,
-		//Master: this.Sch.peerList.Address
+		Id:           this.ID,
+		Master:       this.Sch.peerList.Address,
 		ContractAddr: addr,
 		PartitionCnt: uint64(len(this.SchNode.partitions)),
 		Hardware:     this.SchNode.hardwareRequirement,

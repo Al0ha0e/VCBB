@@ -6,7 +6,6 @@ import (
 	"github.com/Al0ha0e/vcbb/blockchain"
 	"github.com/Al0ha0e/vcbb/msg"
 	"github.com/Al0ha0e/vcbb/peer_list"
-	"github.com/Al0ha0e/vcbb/types"
 	"github.com/Al0ha0e/vcbb/vcfs"
 )
 
@@ -48,7 +47,7 @@ func (this *Scheduler) handleSeekParticipantReq(req peer_list.MessageInfo) {
 	}
 	//TODO: CHECK CONTRACT
 	//TODO: CHECK BASETEST&HARDWARE
-	sess := NewJob(types.NewAddress("reqobj.Master"), "reqobj.ID", reqobj.BaseTest, reqobj.Hardware, this)
+	sess := NewJob(reqobj.Master, reqobj.Id, reqobj.BaseTest, reqobj.Hardware, this)
 	go sess.StartSession(req)
 }
 
