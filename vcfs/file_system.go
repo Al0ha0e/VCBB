@@ -70,13 +70,28 @@ func (this *FileSystem) Serve() {
 }
 
 func (this *FileSystem) Set(key string, value []byte) error {
+	this.lock.Lock()
 	info := this.files[key]
-	info.lock.Lock()
-	defer info.lock.Unlock()
-	if info.state == fPossess {
+	if info != nil {
+		this.lock.Unlock()
 		return fmt.Errorf("file has already setteled")
 	}
-	return this.engine.Set(key, value)
+	info = NewFileInfo(key, fUnkown)
+	this.files[key] = info
+	this.lock.Unlock()
+	info.lock.Lock()
+	err := this.engine.Set(key, value)
+	if err != nil {
+		this.lock.Lock()
+		this.files[key] = nil
+		this.lock.Unlock()
+		info.lock.Unlock()
+		return err
+	}
+	info.state = fPossess
+
+	info.lock.Unlock()
+	return nil
 }
 
 func (this *FileSystem) Get(key string) ([]byte, error) {

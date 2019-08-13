@@ -13,7 +13,7 @@ func (this *FileSystem) HandleTrackerReq(req peer_list.MessageInfo) {
 	if err != nil {
 		return
 	}
-	retpeer := make([][]types.Address, len(reqobj.Keys), 0)
+	retpeer := make([][]types.Address, len(reqobj.Keys))
 	for i, id := range reqobj.Keys {
 		this.rwlock.RLock()
 		info := this.files[id]

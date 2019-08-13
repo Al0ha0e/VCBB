@@ -85,6 +85,10 @@ func (this *FilePurchaseSession) StartSession() {
 		}
 		reqb, _ := json.Marshal(req)
 		for _, peer := range part.peers {
+			prstr := peer.ToString()
+			for _, key := range part.keys {
+				this.peers[this.keyMap[key]][prstr] = 1
+			}
 			this.peerList.GlobalRemoteProcedureCall(peer, "HandleTrackerReq", reqb)
 		}
 	}
@@ -96,6 +100,7 @@ func (this *FilePurchaseSession) HandleTrackerRes(req peer_list.MessageInfo) {
 	if err != nil {
 		return
 	}
+	//fmt.Println("RES", reqobj)
 	for i, key := range reqobj.Keys {
 		id := this.keyMap[key]
 		if this.peers[id][req.From.ToString()] != 1 {
@@ -109,8 +114,8 @@ func (this *FilePurchaseSession) HandleTrackerRes(req peer_list.MessageInfo) {
 		}
 		this.lock.Lock()
 		for _, peer := range reqobj.Peers[i] {
-			if this.peers[id][peer.ToString()] != 1 {
-				this.peers[id][peer.ToString()] = 1
+			if this.peers[id][peer.ToString()] != 2 {
+				this.peers[id][peer.ToString()] = 2
 				this.peerChan[id] <- peer
 			}
 		}
@@ -121,13 +126,15 @@ func (this *FilePurchaseSession) HandleTrackerRes(req peer_list.MessageInfo) {
 
 func (this *FilePurchaseSession) HandlePurchaseRes(res peer_list.MessageInfo) {
 	var resobj purchaseRes
+	fr := res.From.ToString()
 	err := json.Unmarshal(res.Content, &resobj)
 	if err != nil {
 		return
 	}
+	//fmt.Println("PURCHASE RES", resobj)
 	for i, key := range resobj.Keys {
 		id := this.keyMap[key]
-		if this.peers[id][res.From.ToString()] != 1 {
+		if this.peers[id][fr] != 2 {
 			continue
 		}
 		file := resobj.Files[i]
@@ -137,6 +144,10 @@ func (this *FilePurchaseSession) HandlePurchaseRes(res peer_list.MessageInfo) {
 		}
 		info := this.fileSystem.files[key]
 		info.lock.Lock()
+		if info.ps[fr] != possess {
+			info.ps[fr] = possess
+			info.peer = append(info.peer, res.From)
+		}
 		if info.state == fPossess {
 			info.lock.Unlock()
 			continue
@@ -172,6 +183,7 @@ func (this *FilePurchaseSession) tryToPurchase(key string, id uint8) {
 	for {
 		select {
 		case peer := <-this.peerChan[id]:
+			//fmt.Println("TRY", peer.ToString())
 			info := this.fileSystem.files[key]
 			info.rwlock.RLock()
 			if info.state == fPossess {
