@@ -20,7 +20,7 @@ type executeResult struct {
 }
 
 type Executer interface {
-	Run()
+	Run(partitionCnt uint64, keys []string, code string, result chan *executeResult)
 }
 
 type PyExecuter struct {

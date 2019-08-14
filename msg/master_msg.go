@@ -3,10 +3,11 @@ package msg
 import "github.com/Al0ha0e/vcbb/types"
 
 type JobMeta struct {
-	Contract         types.Address   `json:"contract"`
-	Participants     []types.Address `json:"participants"`
-	Partitions       []string        `json:"partitions"`
-	PartitionAnswers []string        `json:"answers"`
+	Contract     types.Address   `json:"contract"`
+	Participants []types.Address `json:"participants"`
+	Keys         []string        `json:"keys"`
+	//Partitions       []string        `json:"partitions"`
+	//PartitionAnswers []string        `json:"answers"`
 }
 
 type ComputationReq struct {
@@ -19,11 +20,13 @@ type ComputationReq struct {
 }
 
 type MetaDataRes struct {
-	PublicKey      string     `json:"publicKey"`
-	Signature      string     `json:"signature"`
-	Code           string     `json:"code"`
-	Partitions     []string   `json:"partitions"`
-	DependencyMeta []*JobMeta `json:"dependencyMeta"`
+	PublicKey         string     `json:"publicKey"`
+	Signature         string     `json:"signature"`
+	Code              string     `json:"code"`
+	PartitionIdOffset uint64     `json:"partitionIdOffset"`
+	Inputs            [][]string `json:"inputs"`
+	DependencyMeta    []*JobMeta `json:"dependencyMeta"`
+	//Partitions     []string   `json:"partitions"`
 }
 
 type JobResult struct {

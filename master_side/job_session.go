@@ -32,7 +32,7 @@ func (this *Job) getComputationReq(addr types.Address) ([]byte, error) {
 		Id:           this.ID,
 		Master:       this.Sch.peerList.Address,
 		ContractAddr: addr,
-		PartitionCnt: uint64(len(this.SchNode.partitions)),
+		PartitionCnt: this.SchNode.partitionCnt,
 		Hardware:     this.SchNode.hardwareRequirement,
 		BaseTest:     this.SchNode.baseTest,
 	}
@@ -42,22 +42,6 @@ func (this *Job) getComputationReq(addr types.Address) ([]byte, error) {
 
 func (this *Job) genPubKey(addr types.Address) string {
 	return "SZH"
-}
-
-func (this *Job) updateAnswer(newAnswer map[string][]types.Address) (bool, error) {
-	for k, v := range newAnswer {
-		this.AnswerDistribute[k] = append(this.AnswerDistribute[k], v...)
-		this.AnswerCnt += uint8(len(v))
-		l := uint8(len(this.AnswerDistribute[k]))
-		if l > this.MaxAnswerCnt {
-			this.MaxAnswerCnt = l
-			this.MaxAnswer = k
-		}
-	}
-	if this.AnswerCnt >= this.MinAnswerCnt && 2*this.MaxAnswerCnt > this.AnswerCnt {
-		return true, nil
-	}
-	return false, nil
 }
 
 //reply to the peer who ask for the metadata to start a computation
@@ -88,6 +72,22 @@ func (this *Job) handleMetaDataReq(req peer_list.MessageInfo) {
 	}
 	resb, err := json.Marshal(res)
 	this.PeerList.Reply(req, "", resb)
+}
+
+func (this *Job) updateAnswer(newAnswer map[string][]types.Address) (bool, error) {
+	for k, v := range newAnswer {
+		this.AnswerDistribute[k] = append(this.AnswerDistribute[k], v...)
+		this.AnswerCnt += uint8(len(v))
+		l := uint8(len(this.AnswerDistribute[k]))
+		if l > this.MaxAnswerCnt {
+			this.MaxAnswerCnt = l
+			this.MaxAnswer = k
+		}
+	}
+	if this.AnswerCnt >= this.MinAnswerCnt && 2*this.MaxAnswerCnt > this.AnswerCnt {
+		return true, nil
+	}
+	return false, nil
 }
 
 func (this *Job) handleContractStateUpdate(sch *Scheduler) {

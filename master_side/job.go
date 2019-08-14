@@ -4,6 +4,7 @@ import (
 	"github.com/Al0ha0e/vcbb/blockchain"
 	"github.com/Al0ha0e/vcbb/peer_list"
 	"github.com/Al0ha0e/vcbb/types"
+	"github.com/Al0ha0e/vcbb/vcfs"
 )
 
 type JobState uint8
@@ -28,13 +29,14 @@ type Job struct {
 	Sch                 *Scheduler
 	PeerList            *peer_list.PeerListInstance
 	SchNode             *scheduleNode
+	Dependencies        []*vcfs.FilePart
 	ComputationContract *blockchain.ComputationContract
 	AnswerDistribute    map[string][]types.Address
 	ContractStateUpdate chan *blockchain.ComputationContractUpdate
 	AnswerCnt           uint8
 	MinAnswerCnt        uint8
 	MaxAnswerCnt        uint8
-	MaxAnswer           string
+	MaxAnswer           [][]string
 	//Dependencies        []*Dependency//
 	//Partitions          []string//
 	//Code                string//
@@ -43,18 +45,18 @@ type Job struct {
 }
 
 type JobMeta struct {
-	job              *Job
+	//job              *Job
 	node             *scheduleNode
 	Contract         types.Address   `json:"contract"`
 	Id               string          `json:"id"`
 	Participants     []types.Address `json:"participants"`
-	Partitions       []string        `json:"partitions"`
-	PartitionAnswers []string        `json:"answers"`
-	RootHash         string          `json:"root"`
+	PartitionAnswers [][]string      `json:"answers"`
+	//Partitions       []string        `json:"partitions"`
+	//RootHash         string          `json:"root"`
 }
 
 func NewJob(id string, sch *Scheduler, schnode *scheduleNode, minAnsCnt uint8 /*dependencies []*Dependency, partitions []string, code, basetest, hardwarereq string*/) *Job {
-	return &Job{
+	ret := &Job{
 		ID:           id,
 		State:        Preparing,
 		Sch:          sch,
@@ -67,6 +69,20 @@ func NewJob(id string, sch *Scheduler, schnode *scheduleNode, minAnsCnt uint8 /*
 		//BaseTest:           basetest,
 		//HarWareRequirement: hardwarereq,
 	}
+	ret.Dependencies = make([]*vcfs.FilePart, 0)
+	for _, v := range schnode.dependencies {
+		keys := make([]string, len(v.keys))
+		for i, id := range v.keys {
+			pos := schnode.inputMap[id]
+			keys[i] = schnode.input[pos.x][pos.y]
+		}
+		dep = &vcfs.FilePart{
+			peers: v.dependencyJobMeta.Participants,
+			keys:  keys,
+		}
+		ret.Dependencies = append(ret.Dependencies, dep)
+	}
+	return ret
 }
 
 func (this *Job) Init() {

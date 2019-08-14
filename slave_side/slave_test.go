@@ -7,7 +7,7 @@ import (
 	"github.com/go-redis/redis"
 )
 
-const url = "http://127.0.0.1:8080/hello/test"
+const url = "http://127.0.0.1:8080/execute"
 
 func TestPyExecuter(t *testing.T) {
 	cli := redis.NewClient(&redis.Options{
