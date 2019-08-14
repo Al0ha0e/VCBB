@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"vcbb/net"
 
-	"github.com/Al0ha0e/vcbb/types"
+	"vcbb/types"
 )
 
 const (

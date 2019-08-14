@@ -3,10 +3,10 @@ package master_side
 import (
 	"fmt"
 
-	"github.com/Al0ha0e/vcbb/blockchain"
-	"github.com/Al0ha0e/vcbb/peer_list"
-	"github.com/Al0ha0e/vcbb/types"
-	"github.com/Al0ha0e/vcbb/vcfs"
+	"vcbb/blockchain"
+	"vcbb/peer_list"
+	"vcbb/types"
+	"vcbb/vcfs"
 )
 
 type Scheduler struct {
@@ -85,16 +85,12 @@ func (this *Scheduler) Dispatch() error {
 			return err
 		}
 	}
-	oriDep := new(Dependency)
-	oriDep.DependencyJobMeta = &JobMeta{
-		Id:               this.ID,
-		Participants:     []types.Address{this.peerList.Address},
-		Partitions:       this.originalPartitions,
-		PartitionAnswers: this.originalData.GetHashList(),
+	oriMeta := &JobMeta{
+		Participants: []types.Address{this.peerList.Address},
 	}
 	for _, node := range this.graph {
 		if node.indeg+node.controlIndeg == 0 {
-			node.dependencies = []*Dependency{oriDep}
+			node.dependencies["ori"].dependencyJobMeta = oriMeta
 			err := this.DispatchJob("RANDOM ID", node)
 			if err != nil {
 				return err
@@ -111,7 +107,18 @@ func (this *Scheduler) watch() {
 		node := jobmeta.node
 		for _, to := range node.outNodes {
 			to.indeg--
-			to.dependencies = append(to.dependencies, &Dependency{DependencyJob: jobmeta.job, DependencyJobMeta: jobmeta})
+			//to.dependencies = append(to.dependencies, &Dependency{DependencyJob: jobmeta.job, DependencyJobMeta: jobmeta})
+			for i := 0; i < len(jobmeta.PartitionAnswers); i++ {
+				for j := 0; j < len(jobmeta.PartitionAnswers[i]); j++ {
+					id := node.output[i][j]
+					pos := to.inputMap[id]
+					if pos == nil {
+						continue
+					}
+					to.input[pos.x][pos.y] = jobmeta.PartitionAnswers[i][j]
+				}
+			}
+			to.dependencies[node.id].dependencyJobMeta = jobmeta
 			if to.indeg+to.controlIndeg == 0 {
 				this.DispatchJob("RANDOMID", to) //ERROR HANDLEING
 			}

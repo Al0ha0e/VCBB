@@ -2,11 +2,12 @@ package slave_side
 
 import (
 	"encoding/json"
+	"fmt"
 
-	"github.com/Al0ha0e/vcbb/msg"
-	"github.com/Al0ha0e/vcbb/peer_list"
-	"github.com/Al0ha0e/vcbb/types"
-	"github.com/Al0ha0e/vcbb/vcfs"
+	"vcbb/msg"
+	"vcbb/peer_list"
+	"vcbb/types"
+	"vcbb/vcfs"
 )
 
 type jobRunTimeError struct {
@@ -15,21 +16,24 @@ type jobRunTimeError struct {
 }
 
 type Job struct {
-	id       string
-	master   types.Address
-	baseTest string
-	hardware string
-	sch      *Scheduler
-	peerList *peer_list.PeerListInstance
+	id           string
+	master       types.Address
+	baseTest     string
+	hardware     string
+	code         string
+	sch          *Scheduler
+	peerList     *peer_list.PeerListInstance
+	partitionCnt uint64
 }
 
-func NewJob(master types.Address, id, baseTest, hardware string, sch *Scheduler) *Job {
+func NewJob(master types.Address, id, baseTest, hardware string, sch *Scheduler, partitionCnt uint64) *Job {
 	return &Job{
-		id:       id,
-		master:   master,
-		baseTest: baseTest,
-		hardware: hardware,
-		sch:      sch,
+		id:           id,
+		master:       master,
+		baseTest:     baseTest,
+		hardware:     hardware,
+		sch:          sch,
+		partitionCnt: partitionCnt,
 	}
 }
 
@@ -61,15 +65,19 @@ func (this *Job) handleMetaDataRes(res peer_list.MessageInfo) {
 		}
 		return
 	}
+	this.code = resobj.Code
 	oksign := make(chan struct{}, 1)
 	parts := make([]vcfs.FilePart, len(resobj.DependencyMeta))
-	/*
-		for i, meta := range resobj.DependencyMeta {
-			parts[i].peers = meta.Participants
-			parts[i].keys = meta.PartitionAnswers
-		}*/
+	for i, meta := range resobj.DependencyMeta {
+		parts[i].Peers = meta.Participants
+		parts[i].Keys = meta.Keys
+	}
 	this.sch.fileSystem.FetchFiles(parts, oksign)
 	<-oksign
+	exeResultChan := make(chan *executeResult, 1)
+	this.sch.executer.Run(this.partitionCnt, resobj.Inputs, resobj.Code, exeResultChan)
+	exeResult := <-exeResultChan
+	fmt.Println(exeResult)
 }
 
 func (this *Job) terminate() {

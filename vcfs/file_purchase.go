@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Al0ha0e/vcbb/peer_list"
+	"vcbb/peer_list"
 )
 
 const waitRoundCheckDuration int64 = 10000
@@ -19,10 +19,10 @@ func (this *FileSystem) FetchFiles(parts []FilePart, okSignal chan struct{}) {
 	var lock sync.Mutex
 	for _, part := range parts {
 		np := FilePart{
-			keys:  make([]string, 0),
-			peers: part.peers,
+			Keys:  make([]string, 0),
+			Peers: part.Peers,
 		}
-		for _, key := range part.keys {
+		for _, key := range part.Keys {
 			this.lock.Lock()
 			info := this.files[key]
 			if info == nil {
@@ -43,12 +43,12 @@ func (this *FileSystem) FetchFiles(parts []FilePart, okSignal chan struct{}) {
 				waitingCount++
 				info.state = fPurchasing
 				purchase[key] = true
-				np.keys = append(np.keys, key)
+				np.Keys = append(np.Keys, key)
 			}
 			info.lock.Unlock()
 		}
 		//fmt.Println("NP", np.keys)
-		if len(np.keys) > 0 {
+		if len(np.Keys) > 0 {
 			purchaseList = append(purchaseList, np)
 		}
 	}

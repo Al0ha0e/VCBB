@@ -5,7 +5,7 @@ import (
 	"testing"
 	"vcbb/net"
 
-	"github.com/Al0ha0e/vcbb/types"
+	"vcbb/types"
 )
 
 func TestPeerList(t *testing.T) {

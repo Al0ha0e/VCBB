@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Al0ha0e/vcbb/peer_list"
-	"github.com/Al0ha0e/vcbb/types"
+	"vcbb/peer_list"
+	"vcbb/types"
 )
 
 func (this *FileSystem) SyncFile(keys []string, siz []uint64, peers []types.Address) error {

@@ -1,6 +1,6 @@
 package vcfs
 
-import "github.com/Al0ha0e/vcbb/types"
+import "vcbb/types"
 
 type trackerReq struct {
 	Keys []string `json:"keys"`

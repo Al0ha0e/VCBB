@@ -3,8 +3,8 @@ package vcfs
 import (
 	"encoding/json"
 
-	"github.com/Al0ha0e/vcbb/peer_list"
-	"github.com/Al0ha0e/vcbb/types"
+	"vcbb/peer_list"
+	"vcbb/types"
 )
 
 func (this *FileSystem) HandleTrackerReq(req peer_list.MessageInfo) {

@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Al0ha0e/vcbb/peer_list"
-	"github.com/Al0ha0e/vcbb/types"
+	"vcbb/peer_list"
+	"vcbb/types"
 )
 
 const (
@@ -20,8 +20,8 @@ type filePurchaseResult struct {
 }
 
 type FilePart struct {
-	keys  []string
-	peers []types.Address
+	Keys  []string
+	Peers []types.Address
 }
 
 type FilePurchaseSession struct {
@@ -52,7 +52,7 @@ func NewFilePurchaseSession(id string, fs *FileSystem, parts []FilePart, resultC
 	}
 	var i uint8
 	for _, pt := range parts {
-		for _, key := range pt.keys {
+		for _, key := range pt.Keys {
 			ret.keyMap[key] = i
 			i++
 		}
@@ -81,12 +81,12 @@ func (this *FilePurchaseSession) StartSession() {
 	}
 	for _, part := range this.parts {
 		req := trackerReq{
-			Keys: part.keys,
+			Keys: part.Keys,
 		}
 		reqb, _ := json.Marshal(req)
-		for _, peer := range part.peers {
+		for _, peer := range part.Peers {
 			prstr := peer.ToString()
-			for _, key := range part.keys {
+			for _, key := range part.Keys {
 				this.peers[this.keyMap[key]][prstr] = 1
 			}
 			this.peerList.GlobalRemoteProcedureCall(peer, "HandleTrackerReq", reqb)

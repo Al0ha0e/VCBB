@@ -12,11 +12,10 @@ red = redis.Redis(host='localhost', port=6379)
 def execute(keys, partitionCnt, code):
     ret = []
     l = len(keys)
-    seg = l//partitionCnt
     i = 0
     # print(code)
-    while i < partitionCnt:
-        args = {'input': red.mget(*keys[i*seg:(i+1)*seg]), 'output': []}
+    while i < l:
+        args = {'input': red.mget(*keys[i]), 'output': []}
         exec(code, args)
         ans = args['output']
         #print("BEFORE", ans, args['output'])

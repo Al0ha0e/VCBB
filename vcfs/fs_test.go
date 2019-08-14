@@ -7,15 +7,15 @@ import (
 
 	"vcbb/net"
 
-	"github.com/Al0ha0e/vcbb/peer_list"
-	"github.com/Al0ha0e/vcbb/types"
+	"vcbb/peer_list"
+	"vcbb/types"
 )
 
 func tEnv(ns *net.NetSimulator, addr types.Address) *FileSystem {
 	pl := peer_list.NewPeerList(addr, ns)
 	pl.Run()
-	//eg := neMapKVStore()
-	eg := newRedisKVStore("localhost:6379")
+	eg := neMapKVStore()
+	//eg := newRedisKVStore("localhost:6379")
 	return NewFileSystem(eg, pl)
 }
 
@@ -107,8 +107,8 @@ func TestPurchaseFile(t *testing.T) {
 	oksign := make(chan struct{}, 1)
 	parts := make([]FilePart, 1)
 	parts[0] = FilePart{
-		keys:  []string{"test", "test2"},
-		peers: []types.Address{addr1},
+		Keys:  []string{"test", "test2"},
+		Peers: []types.Address{addr1},
 	}
 	go fs2.FetchFiles(parts, oksign)
 	<-oksign

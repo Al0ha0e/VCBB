@@ -3,9 +3,10 @@ package master_side
 import (
 	"encoding/json"
 
-	"github.com/Al0ha0e/vcbb/msg"
-	"github.com/Al0ha0e/vcbb/peer_list"
-	"github.com/Al0ha0e/vcbb/types"
+	"vcbb/blockchain"
+	"vcbb/msg"
+	"vcbb/peer_list"
+	"vcbb/types"
 )
 
 func (this *Job) StartSession(sch *Scheduler) error {
@@ -17,7 +18,7 @@ func (this *Job) StartSession(sch *Scheduler) error {
 	this.PeerList.AddCallBack("handleMetaDataReq", this.handleMetaDataReq)
 	req, err := this.getComputationReq(addr)
 	//err = this.PeerList.BroadCastRPC(this.ID, peer_list.SeekParticipantReq, req) //(req)
-	_, err = sch.peerList.BroadCastRPC("", req, 2)
+	_, err = sch.peerList.BroadCastRPC("handleSeekParticipantReq", req, 2)
 	if err != nil {
 		return err
 	}
@@ -53,35 +54,27 @@ func (this *Job) handleMetaDataReq(req peer_list.MessageInfo) {
 	if err != nil {
 		return
 	}
-	deps := make([]*msg.JobMeta, len(this.SchNode.dependencies))
-	for i, dep := range this.SchNode.dependencies {
-		depmeta := dep.DependencyJobMeta
-		deps[i] = &msg.JobMeta{
-			Contract:         depmeta.Contract,
-			Participants:     depmeta.Participants,
-			Partitions:       depmeta.Partitions,
-			PartitionAnswers: depmeta.PartitionAnswers,
-		}
-	}
 	res := msg.MetaDataRes{
 		//TODO: SIGNATURE
-		PublicKey:      this.genPubKey(req.From),
-		Code:           this.SchNode.code,
-		Partitions:     this.SchNode.partitions,
-		DependencyMeta: deps,
+		PublicKey:         this.genPubKey(req.From),
+		Code:              this.SchNode.code,
+		PartitionIdOffset: this.SchNode.partitionIDOffset,
+		Inputs:            this.SchNode.input,
+		DependencyMeta:    this.Dependencies,
 	}
 	resb, err := json.Marshal(res)
-	this.PeerList.Reply(req, "", resb)
+	this.PeerList.Reply(req, "handleMetaDataRes", resb)
 }
 
-func (this *Job) updateAnswer(newAnswer map[string][]types.Address) (bool, error) {
+func (this *Job) updateAnswer(newAnswer map[string]*blockchain.Answer) (bool, error) {
 	for k, v := range newAnswer {
-		this.AnswerDistribute[k] = append(this.AnswerDistribute[k], v...)
-		this.AnswerCnt += uint8(len(v))
+		this.AnswerDistribute[k] = append(this.AnswerDistribute[k], v.Commiters...)
+		this.AnswerCnt += uint8(len(v.Commiters))
 		l := uint8(len(this.AnswerDistribute[k]))
 		if l > this.MaxAnswerCnt {
 			this.MaxAnswerCnt = l
-			this.MaxAnswer = k
+			this.MaxAnswer = v.Ans
+			this.MaxAnswerHash = k
 		}
 	}
 	if this.AnswerCnt >= this.MinAnswerCnt && 2*this.MaxAnswerCnt > this.AnswerCnt {
@@ -110,11 +103,12 @@ func (this *Job) Terminate() {
 	this.State = Finished
 	this.ComputationContract.Terminate() //TODO
 	this.Sch.peerList.RemoveInstance(this.ID)
-	var pt []types.Address
 	ret := &JobMeta{
-		Id:           this.ID,
-		Participants: pt,
-		Partitions:   this.SchNode.partitions,
+		node:             this.SchNode,
+		Contract:         this.ComputationContract.Contract,
+		Id:               this.ID,
+		Participants:     this.AnswerDistribute[this.MaxAnswerHash],
+		PartitionAnswers: this.MaxAnswer,
 	}
 	this.Sch.result <- ret
 }

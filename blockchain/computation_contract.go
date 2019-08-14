@@ -1,14 +1,20 @@
 package blockchain
 
-import "github.com/Al0ha0e/vcbb/types"
+import "vcbb/types"
 
 type ComputationContract struct {
+	Contract            types.Address
 	handler             BlockChainHandler
 	contractStateUpdate chan *ComputationContractUpdate
 }
 
+type Answer struct {
+	Commiters []types.Address
+	Ans       [][]string
+}
+
 type ComputationContractUpdate struct {
-	NewAnswer map[string][]types.Address
+	NewAnswer map[string]*Answer
 	Punished  map[string][]types.Address
 }
 

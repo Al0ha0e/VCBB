@@ -1,10 +1,10 @@
 package master_side
 
 import (
-	"github.com/Al0ha0e/vcbb/blockchain"
-	"github.com/Al0ha0e/vcbb/peer_list"
-	"github.com/Al0ha0e/vcbb/types"
-	"github.com/Al0ha0e/vcbb/vcfs"
+	"vcbb/blockchain"
+	"vcbb/msg"
+	"vcbb/peer_list"
+	"vcbb/types"
 )
 
 type JobState uint8
@@ -29,7 +29,7 @@ type Job struct {
 	Sch                 *Scheduler
 	PeerList            *peer_list.PeerListInstance
 	SchNode             *scheduleNode
-	Dependencies        []*vcfs.FilePart
+	Dependencies        []*msg.JobMeta
 	ComputationContract *blockchain.ComputationContract
 	AnswerDistribute    map[string][]types.Address
 	ContractStateUpdate chan *blockchain.ComputationContractUpdate
@@ -37,6 +37,7 @@ type Job struct {
 	MinAnswerCnt        uint8
 	MaxAnswerCnt        uint8
 	MaxAnswer           [][]string
+	MaxAnswerHash       string
 	//Dependencies        []*Dependency//
 	//Partitions          []string//
 	//Code                string//
@@ -69,16 +70,17 @@ func NewJob(id string, sch *Scheduler, schnode *scheduleNode, minAnsCnt uint8 /*
 		//BaseTest:           basetest,
 		//HarWareRequirement: hardwarereq,
 	}
-	ret.Dependencies = make([]*vcfs.FilePart, 0)
+	ret.Dependencies = make([]*msg.JobMeta, 0)
 	for _, v := range schnode.dependencies {
 		keys := make([]string, len(v.keys))
 		for i, id := range v.keys {
 			pos := schnode.inputMap[id]
 			keys[i] = schnode.input[pos.x][pos.y]
 		}
-		dep = &vcfs.FilePart{
-			peers: v.dependencyJobMeta.Participants,
-			keys:  keys,
+		dep := &msg.JobMeta{
+			Contract:     v.dependencyJobMeta.Contract,
+			Participants: v.dependencyJobMeta.Participants,
+			Keys:         keys,
 		}
 		ret.Dependencies = append(ret.Dependencies, dep)
 	}

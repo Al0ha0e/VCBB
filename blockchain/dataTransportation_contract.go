@@ -1,6 +1,6 @@
 package blockchain
 
-import "github.com/Al0ha0e/vcbb/types"
+import "vcbb/types"
 
 type DataTransportationContract struct {
 	handler BlockChainHandler

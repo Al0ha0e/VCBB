@@ -22,7 +22,7 @@ func TestPyExecuter(t *testing.T) {
 	return input[0]+input[1]
 output=[func()]`
 	ansChan := make(chan *executeResult, 1)
-	exe.Run(1, []string{"A", "B"}, code, ansChan)
+	exe.Run(1, [][]string{[]string{"A", "B"}}, code, ansChan)
 	ans := <-ansChan
 	if ans.err != nil {
 		fmt.Println(ans.err)

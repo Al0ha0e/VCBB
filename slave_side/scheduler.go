@@ -3,28 +3,30 @@ package slave_side
 import (
 	"encoding/json"
 
-	"github.com/Al0ha0e/vcbb/blockchain"
-	"github.com/Al0ha0e/vcbb/msg"
-	"github.com/Al0ha0e/vcbb/peer_list"
-	"github.com/Al0ha0e/vcbb/vcfs"
+	"vcbb/blockchain"
+	"vcbb/msg"
+	"vcbb/peer_list"
+	"vcbb/vcfs"
 )
 
 type Scheduler struct {
-	maxJobCount     uint64
-	runningJobList  []*Job
 	peerList        *peer_list.PeerList
 	fileSystem      *vcfs.FileSystem
 	bcHandler       blockchain.BlockChainHandler
+	executer        Executer
+	maxJobCount     uint64
+	runningJobList  []*Job
 	TerminateSignal chan struct{}
 	jobError        chan jobRunTimeError
 }
 
-func NewScheduler(maxjobcnt uint64, peerlist *peer_list.PeerList, fs *vcfs.FileSystem, bchandler blockchain.BlockChainHandler) *Scheduler {
+func NewScheduler(maxjobcnt uint64, peerlist *peer_list.PeerList, fs *vcfs.FileSystem, bchandler blockchain.BlockChainHandler, executer Executer) *Scheduler {
 	return &Scheduler{
 		maxJobCount: maxjobcnt,
 		peerList:    peerlist,
 		fileSystem:  fs,
 		bcHandler:   bchandler,
+		executer:    executer,
 	}
 }
 
@@ -47,7 +49,7 @@ func (this *Scheduler) handleSeekParticipantReq(req peer_list.MessageInfo) {
 	}
 	//TODO: CHECK CONTRACT
 	//TODO: CHECK BASETEST&HARDWARE
-	sess := NewJob(reqobj.Master, reqobj.Id, reqobj.BaseTest, reqobj.Hardware, this)
+	sess := NewJob(reqobj.Master, reqobj.Id, reqobj.BaseTest, reqobj.Hardware, this, reqobj.PartitionCnt)
 	go sess.StartSession(req)
 }
 

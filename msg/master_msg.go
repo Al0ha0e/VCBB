@@ -1,6 +1,6 @@
 package msg
 
-import "github.com/Al0ha0e/vcbb/types"
+import "vcbb/types"
 
 type JobMeta struct {
 	Contract     types.Address   `json:"contract"`
