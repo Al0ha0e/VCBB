@@ -48,7 +48,7 @@ func (this *Job) StartSession(req peer_list.MessageInfo) {
 		Result: "TODO",
 	}
 	resb, _ := json.Marshal(res)
-	this.peerList.Reply(req, "", resb)
+	this.peerList.Reply(req, "handleMetaDataReq", resb)
 }
 
 func (this *Job) handleMetaDataRes(res peer_list.MessageInfo) {
@@ -65,6 +65,7 @@ func (this *Job) handleMetaDataRes(res peer_list.MessageInfo) {
 		}
 		return
 	}
+	//fmt.Println("OBJ", resobj)
 	this.code = resobj.Code
 	oksign := make(chan struct{}, 1)
 	parts := make([]vcfs.FilePart, len(resobj.DependencyMeta))
@@ -72,7 +73,8 @@ func (this *Job) handleMetaDataRes(res peer_list.MessageInfo) {
 		parts[i].Peers = meta.Participants
 		parts[i].Keys = meta.Keys
 	}
-	this.sch.fileSystem.FetchFiles(parts, oksign)
+	//fmt.Println("PARTS", parts)
+	go this.sch.fileSystem.FetchFiles(parts, oksign)
 	<-oksign
 	exeResultChan := make(chan *executeResult, 1)
 	this.sch.executer.Run(this.partitionCnt, resobj.Inputs, resobj.Code, exeResultChan)

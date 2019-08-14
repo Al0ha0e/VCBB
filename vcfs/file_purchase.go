@@ -52,7 +52,7 @@ func (this *FileSystem) FetchFiles(parts []FilePart, okSignal chan struct{}) {
 			purchaseList = append(purchaseList, np)
 		}
 	}
-	//fmt.Println(purchaseList)
+	//fmt.Println("LIST", purchaseList)
 	resultChan := make(chan filePurchaseResult, 5)
 	session := NewFilePurchaseSession("RandomID", this, purchaseList, resultChan)
 	stopSignal := make(chan struct{}, 1)

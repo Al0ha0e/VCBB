@@ -20,13 +20,13 @@ type Scheduler struct {
 	jobError        chan jobRunTimeError
 }
 
-func NewScheduler(maxjobcnt uint64, peerlist *peer_list.PeerList, fs *vcfs.FileSystem, bchandler blockchain.BlockChainHandler, executer Executer) *Scheduler {
+func NewScheduler(maxjobcnt uint64, peerlist *peer_list.PeerList, fs *vcfs.FileSystem /*bchandler blockchain.BlockChainHandler,*/, executer Executer) *Scheduler {
 	return &Scheduler{
 		maxJobCount: maxjobcnt,
 		peerList:    peerlist,
 		fileSystem:  fs,
-		bcHandler:   bchandler,
 		executer:    executer,
+		//bcHandler:   bchandler,
 	}
 }
 
@@ -47,6 +47,7 @@ func (this *Scheduler) handleSeekParticipantReq(req peer_list.MessageInfo) {
 	if err != nil {
 		return
 	}
+	//fmt.Println("OBJ", reqobj)
 	//TODO: CHECK CONTRACT
 	//TODO: CHECK BASETEST&HARDWARE
 	sess := NewJob(reqobj.Master, reqobj.Id, reqobj.BaseTest, reqobj.Hardware, this, reqobj.PartitionCnt)

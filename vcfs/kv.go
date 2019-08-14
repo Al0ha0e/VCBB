@@ -10,7 +10,7 @@ type KVStore interface {
 
 type mapKVStore map[string][]byte
 
-func neMapKVStore() *mapKVStore {
+func NewMapKVStore() *mapKVStore {
 	var ret mapKVStore = make(map[string][]byte)
 	return &ret
 }
@@ -33,7 +33,7 @@ type redisKVStore struct {
 	client *redis.Client
 }
 
-func newRedisKVStore(addr string) *redisKVStore {
+func NewRedisKVStore(addr string) *redisKVStore {
 	return &redisKVStore{
 		addr: addr,
 		client: redis.NewClient(&redis.Options{

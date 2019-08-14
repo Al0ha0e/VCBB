@@ -25,7 +25,7 @@ type MetaDataRes struct {
 	Code              string     `json:"code"`
 	PartitionIdOffset uint64     `json:"partitionIdOffset"`
 	Inputs            [][]string `json:"inputs"`
-	DependencyMeta    []*JobMeta `json:"dependencyMeta"`
+	DependencyMeta    []JobMeta  `json:"dependencyMeta"`
 	//Partitions     []string   `json:"partitions"`
 }
 
