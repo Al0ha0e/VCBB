@@ -1,5 +1,7 @@
 package vcfs
 
+import "github.com/go-redis/redis"
+
 type KVStore interface {
 	Get(string) ([]byte, error)
 	Set(string, []byte) error
@@ -23,5 +25,36 @@ func (this *mapKVStore) Set(key string, value []byte) error {
 }
 
 func (this *mapKVStore) CanSet(uint64) bool {
+	return true
+}
+
+type redisKVStore struct {
+	addr   string
+	client *redis.Client
+}
+
+func newRedisKVStore(addr string) *redisKVStore {
+	return &redisKVStore{
+		addr: addr,
+		client: redis.NewClient(&redis.Options{
+			Addr: addr,
+		}),
+	}
+}
+
+func (this *redisKVStore) Get(key string) ([]byte, error) {
+	v, err := this.client.Get(key).Result()
+	if err != nil {
+		return nil, err
+	}
+	return []byte(v), nil
+}
+
+func (this *redisKVStore) Set(key string, value []byte) error {
+	err := this.client.Set(key, string(value), 0).Err()
+	return err
+}
+
+func (this *redisKVStore) CanSet(uint64) bool {
 	return true
 }

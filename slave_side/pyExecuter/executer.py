@@ -2,6 +2,7 @@ from bottle import request, response, route, run, template
 import time
 import json
 import redis
+import hashlib
 
 red = redis.Redis(host='localhost', port=6379)
 
@@ -15,8 +16,18 @@ def execute(keys, partitionCnt, code):
     while i < partitionCnt:
         args = {'input': red.mget(*keys[i*seg:(i+1)*seg]), 'output': []}
         exec(code, args)
-        print(args['output'])
-        ret.append(args['output'])
+        ans = args['output']
+        print("BEFORE", ans, args['output'])
+        i = 0
+        for obj in ans:
+            sha3 = hashlib.sha3_256()
+            sha3.update(obj)
+            key = sha3.hexdigest()
+            red.set(key, obj)
+            ans[i] = key
+            i += 1
+        print("AFTER", ans)
+        ret.append(ans)
         i += 1
     return ret
 

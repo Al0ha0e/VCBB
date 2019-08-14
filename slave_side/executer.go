@@ -14,28 +14,53 @@ type executeReq struct {
 	Code         string   `json:"code"`
 }
 
+type executeResult struct {
+	result [][]string
+	err    error
+}
+
 type Executer interface {
 	Run()
 }
 
 type PyExecuter struct {
-	code string
-	url  string
+	url string
 }
 
-func (this *PyExecuter) Run(partitionCnt uint64, keys []string, code string, result chan [][]string) {
-	this.url = "http://127.0.0.1:8080/hello/test"
+func NewPyExecuter(url string) *PyExecuter {
+	return &PyExecuter{
+		url: url,
+	}
+}
+
+func (this *PyExecuter) Run(partitionCnt uint64, keys []string, code string, result chan *executeResult) {
 	reqobj := executeReq{
 		PartitionCnt: partitionCnt,
 		Keys:         keys,
 		Code:         code,
 	}
 	req, _ := json.Marshal(reqobj)
-	res, _ := http.Post(this.url, "application/json", bytes.NewReader(req))
-	//fmt.Println(res)
+	res, err := http.Post(this.url, "application/json", bytes.NewReader(req))
+	if err != nil {
+		result <- &executeResult{err: err}
+		return
+	}
 	defer res.Body.Close()
-	body, _ := ioutil.ReadAll(res.Body)
-	var sb [][]string
-	json.Unmarshal(body, &sb)
-	fmt.Println(body, sb)
+	//fmt.Println(res)
+	if res.Status != "200 OK" {
+		result <- &executeResult{err: fmt.Errorf(res.Status)}
+		return
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		result <- &executeResult{err: err}
+		return
+	}
+	var ans [][]string
+	json.Unmarshal(body, &ans)
+	//fmt.Println(body, sb)
+	result <- &executeResult{
+		result: ans,
+		err:    nil,
+	}
 }
