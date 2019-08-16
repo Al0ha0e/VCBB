@@ -69,6 +69,19 @@ func (this *FileSystem) Serve() {
 	this.peerList.AddCallBack("HandleFilePurchaseReq", this.HandleFilePurchaseReq)
 }
 
+func (this *FileSystem) SetInfo(key string) error {
+	this.lock.Lock()
+	info := this.files[key]
+	if info != nil {
+		this.lock.Unlock()
+		return fmt.Errorf("file has already setteled")
+	}
+	info = NewFileInfo(key, fPossess)
+	this.files[key] = info
+	this.lock.Unlock()
+	return nil
+}
+
 func (this *FileSystem) Set(key string, value []byte) error {
 	this.lock.Lock()
 	info := this.files[key]

@@ -1,4 +1,5 @@
 import preprocessor
+import client
 import json
 
 cpns = []
@@ -29,11 +30,19 @@ def omp2(id):
 
 
 cpns.append(preprocessor.computeNode(3, 5, 1, imp2, omp2, "ps2"))
-ori, schndoes = preprocessor.preprocess(28, cpns)
-print(ori)
-for sn in schndoes:
-    sn.show()
-jsonschs = []
-for node in schndoes:
-    jsonschs.append(node.toDict())
-print(json.dumps(jsonschs))
+# ori, schndoes = preprocessor.preprocess(28, cpns)
+# print(ori)
+# for sn in schndoes:
+#     sn.show()
+# jsonschs = []
+# for node in schndoes:
+#     jsonschs.append(node.toDict())
+# print(json.dumps(jsonschs))
+data = []
+i = 0
+while i < 10:
+    data.append(str(i).encode('utf-8'))
+    i += 1
+
+
+client.commitScheduleGraph(28, cpns, data)

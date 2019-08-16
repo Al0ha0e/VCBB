@@ -1,6 +1,6 @@
 package master_side
 
-type pos struct {
+type position struct {
 	X int `json:"x"`
 	Y int `json:"y"`
 }
@@ -13,10 +13,11 @@ type rawScheduleNode struct {
 	PartitionCnt        uint64              `json:"partitionCnt"`
 	PartitionIDOffset   uint64              `json:"partitionIDOffset"`
 	Dependencies        map[string][]string `json:"dependencies"`
-	InputMap            map[string]pos      `json:"inputMap"`
+	InputCnt            uint64              `json:"inputCnt"`
+	InputMap            map[string]position `json:"inputMap"`
 	Output              [][]string          `json:"output"`
-	Indeg               uint8               `json:"indeg"`
-	Outdeg              uint8               `json:"outdeg"`
+	Indeg               uint64              `json:"indeg"`
+	Outdeg              uint64              `json:"outdeg"`
 	OutNodes            []string            `json:"outNodes"`
 	MinAnswerCount      uint8               `json:"minAnswerCount"`
 }

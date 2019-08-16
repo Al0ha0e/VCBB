@@ -75,7 +75,7 @@ func NewJob(id string, sch *Scheduler, schnode *scheduleNode, minAnsCnt uint8 /*
 		keys := make([]string, len(v.keys))
 		for i, id := range v.keys {
 			pos := schnode.inputMap[id]
-			keys[i] = schnode.input[pos.x][pos.y]
+			keys[i] = schnode.input[pos.X][pos.Y]
 		}
 		dep := msg.JobMeta{
 			Contract:     v.dependencyJobMeta.Contract,

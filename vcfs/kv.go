@@ -33,11 +33,12 @@ type redisKVStore struct {
 	client *redis.Client
 }
 
-func NewRedisKVStore(addr string) *redisKVStore {
+func NewRedisKVStore(addr string, db int) *redisKVStore {
 	return &redisKVStore{
 		addr: addr,
 		client: redis.NewClient(&redis.Options{
 			Addr: addr,
+			DB:   db,
 		}),
 	}
 }

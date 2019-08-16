@@ -28,6 +28,7 @@ class schNode:
         self.partitionCnt = ptCnt
         self.partitionIDOffset = ptIDOffset
         self.dependencies = {}
+        self.inputCnt = cpNode.inputCnt
         self.inputMap = {}
         self.output = []
         self.indeg = 0
@@ -45,6 +46,7 @@ class schNode:
                'partitionCnt': self.partitionCnt,
                'partitionIDOffset': self.partitionIDOffset,
                'dependencies': self.dependencies,
+               'inputCnt': self.inputCnt,
                'inputMap': self.inputMap,
                'output': self.output,
                'indeg': self.indeg,

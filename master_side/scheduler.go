@@ -10,14 +10,13 @@ import (
 )
 
 type Scheduler struct {
-	ID                 string
-	bcHandler          blockchain.BlockChainHandler
-	peerList           *peer_list.PeerList
-	fileSystem         *vcfs.FileSystem
-	graph              scheduleGraph
-	result             chan *JobMeta
-	originalPartitions []string
-	originalData       types.DataSource
+	ID           string
+	bcHandler    blockchain.BlockChainHandler
+	peerList     *peer_list.PeerList
+	fileSystem   *vcfs.FileSystem
+	graph        scheduleGraph
+	result       chan *JobMeta
+	originalData map[string]string
 	//oriDataTransportSession *data.DataTransportSession
 	//originalDataTracker     *data.Tracker
 }
@@ -28,22 +27,20 @@ func NewScheduler(
 	peerList *peer_list.PeerList,
 	fileSystem *vcfs.FileSystem,
 	graph scheduleGraph,
-	oriPartitions []string,
-	oridata types.DataSource,
+	oridata map[string]string,
 ) (*Scheduler, error) {
 	err := checkGraph(graph)
 	if err != nil {
 		return nil, err
 	}
 	return &Scheduler{
-		ID:                 id,
-		bcHandler:          bchandler,
-		peerList:           peerList,
-		fileSystem:         fileSystem,
-		graph:              graph,
-		result:             make(chan *JobMeta, 100),
-		originalPartitions: oriPartitions,
-		originalData:       oridata,
+		ID:           id,
+		bcHandler:    bchandler,
+		peerList:     peerList,
+		fileSystem:   fileSystem,
+		graph:        graph,
+		result:       make(chan *JobMeta, 100),
+		originalData: oridata,
 	}, nil
 }
 
@@ -74,23 +71,18 @@ func (this *Scheduler) DispatchJob(id string, node *scheduleNode) error {
 * watch the running state
  */
 func (this *Scheduler) Dispatch() error {
-	tot := this.originalData.GetTotalNum()
-	for i := uint64(0); i < tot; i++ {
-		sing, err := this.originalData.GetSingle(i)
-		if err != nil {
-			return err
-		}
-		err = this.fileSystem.Set(sing.GetHash(), sing.GetValue())
-		if err != nil && err.Error() != "file has already setteled" {
-			return err
-		}
-	}
 	oriMeta := &JobMeta{
 		Participants: []types.Address{this.peerList.Address},
 	}
 	for _, node := range this.graph {
 		if node.indeg+node.controlIndeg == 0 {
 			node.dependencies["ori"].dependencyJobMeta = oriMeta
+			for k, v := range this.originalData {
+				pos, ok := node.inputMap[k]
+				if ok {
+					node.input[pos.X][pos.Y] = v
+				}
+			}
 			err := this.DispatchJob("RANDOM ID", node)
 			if err != nil {
 				return err
@@ -111,11 +103,10 @@ func (this *Scheduler) watch() {
 			for i := 0; i < len(jobmeta.PartitionAnswers); i++ {
 				for j := 0; j < len(jobmeta.PartitionAnswers[i]); j++ {
 					id := node.output[i][j]
-					pos := to.inputMap[id]
-					if pos == nil {
-						continue
+					pos, ok := to.inputMap[id]
+					if ok {
+						to.input[pos.X][pos.Y] = jobmeta.PartitionAnswers[i][j]
 					}
-					to.input[pos.x][pos.y] = jobmeta.PartitionAnswers[i][j]
 				}
 			}
 			to.dependencies[node.id].dependencyJobMeta = jobmeta
