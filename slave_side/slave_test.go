@@ -102,10 +102,12 @@ func TestHandleMetaDataRes(t *testing.T) {
 			Keys:         []string{"A", "B"},
 		}
 		res := msg.MetaDataRes{
-			Inputs:         [][]string{[]string{"A", "B"}},
-			DependencyMeta: []msg.JobMeta{meta},
+			PartitionIdOffset: 3,
+			Inputs:            [][]string{[]string{"A", "B"}},
+			DependencyMeta:    []msg.JobMeta{meta},
 			Code: `def func():
 	print(input[0],input[1],input[0]+input[1])
+	print(partitionId)
 	return input[0]+input[1]
 output=[func()]`,
 		}

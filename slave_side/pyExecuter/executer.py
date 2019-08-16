@@ -9,13 +9,14 @@ red = redis.Redis(host='localhost', port=6379)
 # TODO: RUNTIME ERROR REPORT
 
 
-def execute(keys, partitionCnt, code):
+def execute(offset, keys, partitionCnt, code):
     ret = []
     l = len(keys)
     i = 0
     # print(code)
     while i < l:
-        args = {'input': red.mget(*keys[i]), 'output': []}
+        args = {'partitionId': offset+i,
+                'input': red.mget(*keys[i]), 'output': []}
         exec(code, args)
         ans = args['output']
         #print("BEFORE", ans, args['output'])
@@ -36,7 +37,7 @@ def execute(keys, partitionCnt, code):
 @route('/execute', method="post")
 def executer():
     #print("DDDDDB", request.json["keys"],request.json["partitionCnt"], request.json["code"])
-    res = execute(request.json["keys"],
+    res = execute(request.json["partitionIdOffset"], request.json["keys"],
                   request.json["partitionCnt"], request.json["code"])
     print(res)
     response.content_type = "application/json"

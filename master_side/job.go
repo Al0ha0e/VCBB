@@ -29,7 +29,7 @@ type Job struct {
 	Sch                 *Scheduler
 	PeerList            *peer_list.PeerListInstance
 	SchNode             *scheduleNode
-	Dependencies        []*msg.JobMeta
+	Dependencies        []msg.JobMeta
 	ComputationContract *blockchain.ComputationContract
 	AnswerDistribute    map[string][]types.Address
 	ContractStateUpdate chan *blockchain.ComputationContractUpdate
@@ -70,14 +70,14 @@ func NewJob(id string, sch *Scheduler, schnode *scheduleNode, minAnsCnt uint8 /*
 		//BaseTest:           basetest,
 		//HarWareRequirement: hardwarereq,
 	}
-	ret.Dependencies = make([]*msg.JobMeta, 0)
+	ret.Dependencies = make([]msg.JobMeta, 0)
 	for _, v := range schnode.dependencies {
 		keys := make([]string, len(v.keys))
 		for i, id := range v.keys {
 			pos := schnode.inputMap[id]
 			keys[i] = schnode.input[pos.x][pos.y]
 		}
-		dep := &msg.JobMeta{
+		dep := msg.JobMeta{
 			Contract:     v.dependencyJobMeta.Contract,
 			Participants: v.dependencyJobMeta.Participants,
 			Keys:         keys,

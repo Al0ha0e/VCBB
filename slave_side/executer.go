@@ -9,9 +9,10 @@ import (
 )
 
 type executeReq struct {
-	PartitionCnt uint64     `json:"partitionCnt"`
-	Keys         [][]string `json:"keys"`
-	Code         string     `json:"code"`
+	PartitionCnt      uint64     `json:"partitionCnt"`
+	PartitionIdOffset uint64     `json:"partitionIdOffset"`
+	Keys              [][]string `json:"keys"`
+	Code              string     `json:"code"`
 }
 
 type executeResult struct {
@@ -20,7 +21,7 @@ type executeResult struct {
 }
 
 type Executer interface {
-	Run(partitionCnt uint64, keys [][]string, code string, result chan *executeResult)
+	Run(partitionCnt, partitionIdOffset uint64, keys [][]string, code string, result chan *executeResult)
 }
 
 type PyExecuter struct {
@@ -33,11 +34,12 @@ func NewPyExecuter(url string) *PyExecuter {
 	}
 }
 
-func (this *PyExecuter) Run(partitionCnt uint64, keys [][]string, code string, result chan *executeResult) {
+func (this *PyExecuter) Run(partitionCnt, partitionIdOffset uint64, keys [][]string, code string, result chan *executeResult) {
 	reqobj := executeReq{
-		PartitionCnt: partitionCnt,
-		Keys:         keys,
-		Code:         code,
+		PartitionCnt:      partitionCnt,
+		PartitionIdOffset: partitionIdOffset,
+		Keys:              keys,
+		Code:              code,
 	}
 	req, _ := json.Marshal(reqobj)
 	res, err := http.Post(this.url, "application/json", bytes.NewReader(req))
