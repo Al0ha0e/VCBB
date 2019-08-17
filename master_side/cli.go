@@ -14,7 +14,7 @@ import (
 type MasterClient struct {
 	url        string
 	schedulers []*Scheduler
-	peerList   *peer_list.PeerList
+	PeerList   *peer_list.PeerList
 	fileSystem *vcfs.FileSystem
 }
 
@@ -22,7 +22,7 @@ func NewMasterClient(addr types.Address, ns *net.NetSimulator) *MasterClient {
 	pl := peer_list.NewPeerList(addr, ns)
 	ret := &MasterClient{
 		schedulers: make([]*Scheduler, 0),
-		peerList:   pl,
+		PeerList:   pl,
 		fileSystem: vcfs.NewFileSystem(vcfs.NewRedisKVStore("localhost:6379", 1), pl),
 	}
 	return ret
@@ -30,10 +30,10 @@ func NewMasterClient(addr types.Address, ns *net.NetSimulator) *MasterClient {
 
 func (this *MasterClient) Run() {
 	fmt.Println("ST")
-	this.peerList.Run()
+	this.PeerList.Run()
 	this.fileSystem.Serve()
 	http.HandleFunc("/commitSchGraph", this.handleReq)
-	http.ListenAndServe(":8080", nil)
+	go http.ListenAndServe(":8080", nil)
 }
 
 func (this *MasterClient) handleReq(w http.ResponseWriter, req *http.Request) {
@@ -46,11 +46,16 @@ func (this *MasterClient) handleReq(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		return
 	}
-	graph, err := this.ConstructGraph(reqobj.SchGraph)
+	graph, err := this.constructGraph(reqobj.SchGraph)
 	if err != nil {
 		return
 	}
-	NewScheduler("test", nil, this.peerList, this.fileSystem, graph, reqobj.OriDataHash)
+	sch, err := NewScheduler("test", nil, this.PeerList, this.fileSystem, graph, reqobj.OriDataHash)
+	if err != nil {
+		return
+	}
+	fmt.Println(sch)
+	sch.Dispatch()
 	/*
 		fmt.Println(sb.OriDataHash)
 		for _, node := range sb.SchGraph {
@@ -58,7 +63,7 @@ func (this *MasterClient) handleReq(w http.ResponseWriter, req *http.Request) {
 		}*/
 }
 
-func (this *MasterClient) ConstructGraph(rawGraph []rawScheduleNode) (scheduleGraph, error) {
+func (this *MasterClient) constructGraph(rawGraph []rawScheduleNode) (scheduleGraph, error) {
 	ret := make([]*scheduleNode, len(rawGraph))
 	idmap := make(map[string]*scheduleNode)
 	for i, rawnode := range rawGraph {

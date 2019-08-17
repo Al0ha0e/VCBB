@@ -47,18 +47,19 @@ func (this *FileSystem) FetchFiles(parts []FilePart, okSignal chan struct{}) {
 			}
 			info.lock.Unlock()
 		}
-		//fmt.Println("NP", np.keys)
+		//fmt.Println("NP", np.Keys)
 		if len(np.Keys) > 0 {
 			purchaseList = append(purchaseList, np)
 		}
 	}
 	//fmt.Println("LIST", purchaseList)
 	resultChan := make(chan filePurchaseResult, 5)
-	session := NewFilePurchaseSession("RandomID", this, purchaseList, resultChan)
+	session := NewFilePurchaseSession(this.idSource.Get(), this, purchaseList, resultChan)
 	stopSignal := make(chan struct{}, 1)
 	go func() {
 		for {
 			result, ok := <-resultChan
+			//fmt.Println("RESULT", result)
 			if !ok {
 				return
 			}
@@ -67,6 +68,7 @@ func (this *FileSystem) FetchFiles(parts []FilePart, okSignal chan struct{}) {
 				fmt.Println("TODO")
 			} else {
 				waitingCount--
+				//fmt.Println("WC", waitingCount)
 				if waitingCount == 0 {
 					var ret struct{}
 					stopSignal <- ret

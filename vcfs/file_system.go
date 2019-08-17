@@ -49,6 +49,7 @@ type FileSystem struct {
 	engine   KVStore
 	files    map[string]*fileInfo
 	peerList *peer_list.PeerList
+	idSource *types.UniqueRandomIDSource
 	lock     sync.Mutex
 	rwlock   sync.RWMutex
 }
@@ -58,6 +59,7 @@ func NewFileSystem(eg KVStore, pl *peer_list.PeerList) *FileSystem {
 		engine:   eg,
 		files:    make(map[string]*fileInfo),
 		peerList: pl,
+		idSource: types.NewUniqueRandomIDSource(32),
 	}
 }
 

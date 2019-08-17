@@ -1,6 +1,10 @@
 package vcfs
 
-import "github.com/go-redis/redis"
+import (
+	"sync"
+
+	"github.com/gomodule/redigo/redis"
+)
 
 type KVStore interface {
 	Get(string) ([]byte, error)
@@ -30,29 +34,37 @@ func (this *mapKVStore) CanSet(uint64) bool {
 
 type redisKVStore struct {
 	addr   string
-	client *redis.Client
+	client redis.Conn
+	lock   sync.Mutex
 }
 
 func NewRedisKVStore(addr string, db int) *redisKVStore {
+	c, _ := redis.Dial("tcp", addr, redis.DialDatabase(db))
 	return &redisKVStore{
-		addr: addr,
-		client: redis.NewClient(&redis.Options{
-			Addr: addr,
-			DB:   db,
-		}),
+		addr:   addr,
+		client: c,
+		/*redis.NewClient(&redis.Options{
+			Addr:     addr,
+			DB:       db,
+			PoolSize: 12,
+		}),*/
 	}
 }
 
 func (this *redisKVStore) Get(key string) ([]byte, error) {
-	v, err := this.client.Get(key).Result()
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	v, err := redis.Bytes(this.client.Do("GET", key))
 	if err != nil {
 		return nil, err
 	}
-	return []byte(v), nil
+	return v, nil
 }
 
 func (this *redisKVStore) Set(key string, value []byte) error {
-	err := this.client.Set(key, string(value), 0).Err()
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	_, err := this.client.Do("SET", key, string(value))
 	return err
 }
 

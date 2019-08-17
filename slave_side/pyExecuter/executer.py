@@ -19,16 +19,17 @@ def execute(offset, keys, partitionCnt, code):
                 'input': red.mget(*keys[i]), 'output': []}
         exec(code, args)
         ans = args['output']
+        #print(i, ans)
         #print("BEFORE", ans, args['output'])
-        i = 0
+        j = 0
         for obj in ans:
             sha3 = hashlib.sha3_256()
             sha3.update(obj)
             key = sha3.hexdigest()
             red.set(key, obj)
-            ans[i] = key
-            i += 1
-        #print("AFTER", ans)
+            ans[j] = key
+            j += 1
+        #print(i, "AFTER", ans)
         ret.append(ans)
         i += 1
     return ret
@@ -39,7 +40,7 @@ def executer():
     #print("DDDDDB", request.json["keys"],request.json["partitionCnt"], request.json["code"])
     res = execute(request.json["partitionIdOffset"], request.json["keys"],
                   request.json["partitionCnt"], request.json["code"])
-    print(res)
+    # print(res)
     response.content_type = "application/json"
     return json.dumps(res)
     # return template('<b>Hello {{name}}</b>!', name=name)

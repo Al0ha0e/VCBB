@@ -73,11 +73,11 @@ func (this *Job) handleMetaDataRes(res peer_list.MessageInfo) {
 		parts[i].Peers = meta.Participants
 		parts[i].Keys = meta.Keys
 	}
-	//fmt.Println("PARTS", parts)
+	fmt.Println("PARTS", parts)
 	go this.sch.fileSystem.FetchFiles(parts, oksign)
 	<-oksign
 	exeResultChan := make(chan *executeResult, 1)
-	this.sch.executer.Run(this.partitionCnt, resobj.PartitionIdOffset, resobj.Inputs, resobj.Code, exeResultChan)
+	go this.sch.executer.Run(this.partitionCnt, resobj.PartitionIdOffset, resobj.Inputs, resobj.Code, exeResultChan)
 	exeResult := <-exeResultChan
 	fmt.Println(exeResult)
 }

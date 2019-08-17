@@ -18,9 +18,9 @@ func TestPeerList(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		pls[i] = NewPeerList(addrs[i], ns)
 	}
-	pls[0].peers = append(pls[0].peers, []types.Address{addrs[1], addrs[2]}...)
-	pls[1].peers = append(pls[1].peers, []types.Address{addrs[0], addrs[2]}...)
-	pls[2].peers = append(pls[2].peers, []types.Address{addrs[0], addrs[1]}...)
+	pls[0].Peers = append(pls[0].Peers, []types.Address{addrs[1], addrs[2]}...)
+	pls[1].Peers = append(pls[1].Peers, []types.Address{addrs[0], addrs[2]}...)
+	pls[2].Peers = append(pls[2].Peers, []types.Address{addrs[0], addrs[1]}...)
 	for i := 0; i < 2; i++ {
 		id := i
 		pls[i].AddCallBack("test", func(msg MessageInfo) {

@@ -2,6 +2,8 @@ package master_side
 
 import (
 	"testing"
+	"vcbb/net"
+	"vcbb/types"
 )
 
 /*
@@ -25,8 +27,8 @@ func TestNewJob(t *testing.T) {
 }*/
 
 func TestClient(t *testing.T) {
-	cli := new(MasterClient)
+	addr1 := types.NewAddress("0xd247126aa720779a4172b88405ec2ad29c6a22d1")
+	ns := net.NewNetSimulator()
+	cli := NewMasterClient(addr1, ns)
 	cli.Run()
-	for {
-	}
 }

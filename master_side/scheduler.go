@@ -17,6 +17,7 @@ type Scheduler struct {
 	graph        scheduleGraph
 	result       chan *JobMeta
 	originalData map[string]string
+	idSource     *types.UniqueRandomIDSource
 	//oriDataTransportSession *data.DataTransportSession
 	//originalDataTracker     *data.Tracker
 }
@@ -41,6 +42,7 @@ func NewScheduler(
 		graph:        graph,
 		result:       make(chan *JobMeta, 100),
 		originalData: oridata,
+		idSource:     types.NewUniqueRandomIDSource(32),
 	}, nil
 }
 
@@ -74,8 +76,14 @@ func (this *Scheduler) Dispatch() error {
 	oriMeta := &JobMeta{
 		Participants: []types.Address{this.peerList.Address},
 	}
+	for _, v := range this.originalData {
+		this.fileSystem.SetInfo(v)
+	}
+	fmt.Println("LL", len(this.graph))
 	for _, node := range this.graph {
+		fmt.Println("TRY ID", node.id)
 		if node.indeg+node.controlIndeg == 0 {
+			fmt.Println("0 INDEG", node.id)
 			node.dependencies["ori"].dependencyJobMeta = oriMeta
 			for k, v := range this.originalData {
 				pos, ok := node.inputMap[k]
@@ -83,8 +91,9 @@ func (this *Scheduler) Dispatch() error {
 					node.input[pos.X][pos.Y] = v
 				}
 			}
-			err := this.DispatchJob("RANDOM ID", node)
+			err := this.DispatchJob(this.idSource.Get(), node)
 			if err != nil {
+				fmt.Println("ERROR", err)
 				return err
 			}
 		}
@@ -111,13 +120,13 @@ func (this *Scheduler) watch() {
 			}
 			to.dependencies[node.id].dependencyJobMeta = jobmeta
 			if to.indeg+to.controlIndeg == 0 {
-				this.DispatchJob("RANDOMID", to) //ERROR HANDLEING
+				this.DispatchJob(this.idSource.Get(), to) //ERROR HANDLEING
 			}
 		}
 		for _, to := range node.controlOutNodes {
 			to.controlIndeg--
 			if to.indeg+to.controlIndeg == 0 {
-				this.DispatchJob("RANODMID", to) //ERROR HANDLEING
+				this.DispatchJob(this.idSource.Get(), to) //ERROR HANDLEING
 			}
 		}
 	}

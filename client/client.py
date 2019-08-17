@@ -4,10 +4,11 @@ import requests
 import hashlib
 import json
 
-#red = redis.Redis(db=1)
+red = redis.Redis(db=1)
 
 
 def commitScheduleGraph(dataNodeCnt, computeNodes, oriData):
+    red = redis.Redis(db=1)
     oriDataMap, schGraph = preprocessor.preprocess(dataNodeCnt, computeNodes)
     oriDataHash = {}
     for key in oriDataMap.keys():
@@ -16,7 +17,7 @@ def commitScheduleGraph(dataNodeCnt, computeNodes, oriData):
         sha3.update(data)
         hs = sha3.hexdigest()
         oriDataHash[oriDataMap[key]] = hs
-        #red.set(hs, data)
+        red.set(hs, data)
     jsonSchGraph = []
     for node in schGraph:
         jsonSchGraph.append(node.toDict())

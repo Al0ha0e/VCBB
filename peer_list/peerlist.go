@@ -13,7 +13,7 @@ const (
 
 type PeerList struct {
 	Address   types.Address
-	peers     []types.Address
+	Peers     []types.Address
 	instances map[string]*PeerListInstance
 	callBack  map[string]func(MessageInfo)
 	//channels   map[string]chan MessageInfo
@@ -25,7 +25,7 @@ type PeerList struct {
 func NewPeerList(addr types.Address, ns *net.NetSimulator) *PeerList {
 	return &PeerList{
 		Address:   addr,
-		peers:     make([]types.Address, 0, 10),
+		Peers:     make([]types.Address, 0, 10),
 		instances: make(map[string]*PeerListInstance),
 		callBack:  make(map[string]func(MessageInfo)),
 		//channels:   make(map[string]chan MessageInfo),
@@ -84,13 +84,13 @@ func (this *PeerList) RemoteProcedureCall(to types.Address, toSession, method st
 }
 
 func (this *PeerList) BroadCastRPC(method string, msg []byte, dist uint8) ([]types.Address, error) {
-	for _, peer := range this.peers {
+	for _, peer := range this.Peers {
 		err := this.BasicRemoteProcedureCall(peer, Global, Global, method, msg, dist)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return this.peers, nil
+	return this.Peers, nil
 }
 
 func (this *PeerList) Reply(info MessageInfo, method string, msg []byte) error {

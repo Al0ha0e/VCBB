@@ -3,7 +3,6 @@ package vcfs
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"vcbb/net"
 
@@ -14,8 +13,8 @@ import (
 func tEnv(ns *net.NetSimulator, addr types.Address) *FileSystem {
 	pl := peer_list.NewPeerList(addr, ns)
 	pl.Run()
-	eg := NewMapKVStore()
-	//eg := NewRedisKVStore("localhost:6379")
+	//eg := NewMapKVStore()
+	eg := NewRedisKVStore("localhost:6379", 2)
 	return NewFileSystem(eg, pl)
 }
 
@@ -67,7 +66,7 @@ func TestTracker(t *testing.T) {
 	for {
 	}
 }*/
-
+/*
 func TestFileSync(t *testing.T) {
 	ns := net.NewNetSimulator()
 	addr1 := types.NewAddress("0xd247126aa720779a4172b88405ec2ad29c6a22d1")
@@ -118,3 +117,4 @@ func TestPurchaseFile(t *testing.T) {
 	VV, _ := fs2.Get("test2")
 	fmt.Println(V, VV)
 }
+*/

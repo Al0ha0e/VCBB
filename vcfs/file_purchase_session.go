@@ -46,7 +46,7 @@ func NewFilePurchaseSession(id string, fs *FileSystem, parts []FilePart, resultC
 		id:         id,
 		fileSystem: fs,
 		parts:      parts,
-		partCnt:    uint8(len(parts)),
+		//partCnt:    uint8(len(parts)),
 		keyMap:     make(map[string]uint8),
 		resultChan: resultChan,
 	}
@@ -57,6 +57,7 @@ func NewFilePurchaseSession(id string, fs *FileSystem, parts []FilePart, resultC
 			i++
 		}
 	}
+	ret.partCnt = i
 	ret.peers = make([]map[string]uint8, i)
 	ret.peerChan = make([]chan types.Address, i)
 	ret.stopSignal = make([]chan struct{}, i)
@@ -64,6 +65,7 @@ func NewFilePurchaseSession(id string, fs *FileSystem, parts []FilePart, resultC
 }
 
 func (this *FilePurchaseSession) StartSession() {
+	//fmt.Println("FILE PURCHASE SESSION START", this.id)
 	l := len(this.peers)
 	//TODO START CONTRACT
 	for i := 0; i < l; i++ {
@@ -157,18 +159,20 @@ func (this *FilePurchaseSession) HandlePurchaseRes(res peer_list.MessageInfo) {
 			info.lock.Unlock()
 			continue
 		}
+		//fmt.Println("PURCHASE OK", resobj.Keys)
 		info.state = fPossess
 		var sign struct{}
 		this.stopSignal[id] <- sign
 		close(this.stopSignal[id])
 		close(this.peerChan[id])
 		this.partCnt--
-		if this.partCnt == 0 {
-			this.Terminate()
-		}
+		//fmt.Println("CNT", this.partCnt)
 		this.resultChan <- filePurchaseResult{
 			key:     key,
 			success: true,
+		}
+		if this.partCnt == 0 {
+			this.Terminate()
 		}
 		info.lock.Unlock()
 	}
@@ -208,7 +212,7 @@ func (this *FilePurchaseSession) RoundCheck() {
 			time.Sleep(time.Duration(checkPeriod))
 			for key, id := range this.keyMap {
 				info := this.fileSystem.files[key]
-				info.rwlock.RLock()
+				info.lock.Lock()
 				if info.state == fPossess {
 					_, ok := <-this.peerChan[id]
 					if ok {
@@ -226,7 +230,7 @@ func (this *FilePurchaseSession) RoundCheck() {
 						}
 					}
 				}
-				info.rwlock.RUnlock()
+				info.lock.Unlock()
 			}
 		}
 	}

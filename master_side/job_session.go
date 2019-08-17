@@ -2,6 +2,7 @@ package master_side
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"vcbb/blockchain"
 	"vcbb/msg"
@@ -10,6 +11,7 @@ import (
 )
 
 func (this *Job) StartSession(sch *Scheduler) error {
+	fmt.Println("SESSION START", this.ID)
 	this.Init()
 	addr, err := this.ComputationContract.Start()
 	if err != nil {
