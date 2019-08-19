@@ -1,0 +1,103 @@
+[
+	{
+		"constant": false,
+		"inputs": [],
+		"name": "terminate",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "answerHash",
+				"type": "string"
+			}
+		],
+		"name": "commit",
+		"outputs": [],
+		"payable": true,
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"name": "id",
+				"type": "string"
+			},
+			{
+				"name": "st",
+				"type": "uint256"
+			},
+			{
+				"name": "fund",
+				"type": "uint256"
+			},
+			{
+				"name": "participantCount",
+				"type": "uint8"
+			},
+			{
+				"name": "distribute",
+				"type": "uint256[8]"
+			}
+		],
+		"payable": true,
+		"stateMutability": "payable",
+		"type": "constructor"
+	},
+	{
+		"payable": true,
+		"stateMutability": "payable",
+		"type": "fallback"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"name": "participant",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"name": "ansHash",
+				"type": "string"
+			}
+		],
+		"name": "committed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"name": "participant",
+				"type": "address"
+			}
+		],
+		"name": "punished",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"name": "ans",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"name": "cnt",
+				"type": "uint256"
+			}
+		],
+		"name": "terminated",
+		"type": "event"
+	}
+]
