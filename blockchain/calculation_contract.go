@@ -11,7 +11,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type CalculationContract struct {
@@ -46,6 +45,19 @@ type CalculationContractUpdate struct {
 	Punished  map[string][]types.Address
 }*/
 
+func CalculationContractFromAddress(handler *EthBlockChainHandler, addr types.Address) (*CalculationContract, error) {
+	instance, err := NewCalculationProc(common.Address(addr), handler.client)
+	if err != nil {
+		return nil, err
+	}
+	return &CalculationContract{
+		handler:          handler,
+		stopSiganl:       make(chan struct{}),
+		Contract:         addr,
+		contractInstance: instance,
+	}, nil
+}
+
 func NewCalculationContract(
 	handler *EthBlockChainHandler,
 	contractStateUpdate chan *Answer,
@@ -64,11 +76,9 @@ func NewCalculationContract(
 }
 
 func (this *CalculationContract) Start() (types.Address, error) {
-	privateKey, err := crypto.HexToECDSA(this.handler.account.PrivateKey)
-	if err != nil {
-		return types.Address{}, err
-	}
-	auth := bind.NewKeyedTransactor(privateKey)
+	this.handler.lock.Lock()
+	defer this.handler.lock.Unlock()
+	auth := bind.NewKeyedTransactor(this.handler.account.ECDSAPrivateKey)
 	auth.Value = this.basicInfo.Value
 	auth.GasLimit = this.basicInfo.GasLimit
 	gp, err := this.handler.client.SuggestGasPrice(context.Background())
@@ -126,10 +136,50 @@ func (this *CalculationContract) watch(committedChan chan *CalculationProcCommit
 	}
 }
 
-func (this *CalculationContract) Terminate() {
+func (this *CalculationContract) Commit(info *ContractDeployInfo, ans [][]string, ansHash string) error {
+	this.handler.lock.Lock()
+	defer this.handler.lock.Unlock()
+	ansb, _ := json.Marshal(ans)
+	auth := bind.NewKeyedTransactor(this.handler.account.ECDSAPrivateKey)
+	auth.Value = info.Value
+	auth.GasLimit = this.basicInfo.GasLimit
+	gp, err := this.handler.client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return err
+	}
+	auth.GasPrice = gp //this.basicInfo.GasPrice
+	nonce, err := this.handler.client.PendingNonceAt(context.Background(), common.Address(this.handler.account.Id))
+	if err != nil {
+		fmt.Println("NONCE", err)
+		return err
+	}
+	auth.Nonce = big.NewInt(int64(nonce))
+	_, err = this.contractInstance.Commit(auth, string(ansb), ansHash)
+	return err
+}
+
+func (this *CalculationContract) Terminate() error {
+	this.handler.lock.Lock()
+	defer this.handler.lock.Unlock()
+	auth := bind.NewKeyedTransactor(this.handler.account.ECDSAPrivateKey)
+	auth.Value = big.NewInt(0)
+	auth.GasLimit = this.basicInfo.GasLimit
+	gp, err := this.handler.client.SuggestGasPrice(context.Background())
+	if err != nil {
+		return err
+	}
+	auth.GasPrice = gp //this.basicInfo.GasPrice
+	nonce, err := this.handler.client.PendingNonceAt(context.Background(), common.Address(this.handler.account.Id))
+	if err != nil {
+		fmt.Println("NONCE", err)
+		return err
+	}
+	auth.Nonce = big.NewInt(int64(nonce))
+	this.contractInstance.Terminate(auth)
 	close(this.contractStateUpdate)
 	this.punishWatcher.Unsubscribe()
 	this.commitWatcher.Unsubscribe()
 	this.stopSiganl <- *new(struct{})
 	close(this.stopSiganl)
+	return nil
 }

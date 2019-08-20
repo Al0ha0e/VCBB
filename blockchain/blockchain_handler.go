@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"math/big"
+	"sync"
 	"vcbb/types"
 
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -14,6 +15,7 @@ type BlockChainHandler interface {
 type EthBlockChainHandler struct {
 	client  *ethclient.Client
 	account types.Account
+	lock    sync.Mutex
 }
 
 func NewEthBlockChainHandler(url string, account types.Account) (*EthBlockChainHandler, error) {

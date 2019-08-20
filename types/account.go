@@ -1,9 +1,11 @@
 package types
 
 import (
+	"crypto/ecdsa"
 	"encoding/hex"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type Address [20]byte
@@ -21,13 +23,16 @@ func NewAddress(str string) Address {
 }
 
 type Account struct {
-	Id         Address
-	PrivateKey string
+	Id              Address
+	PrivateKey      string
+	ECDSAPrivateKey *ecdsa.PrivateKey
 }
 
 func NewAccount(id [20]byte, privateKey string) *Account {
+	ecdp, _ := crypto.HexToECDSA(privateKey)
 	return &Account{
-		Id:         id,
-		PrivateKey: privateKey,
+		Id:              id,
+		PrivateKey:      privateKey,
+		ECDSAPrivateKey: ecdp,
 	}
 }

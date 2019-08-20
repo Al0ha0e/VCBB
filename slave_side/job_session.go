@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"vcbb/blockchain"
 	"vcbb/msg"
 	"vcbb/peer_list"
 	"vcbb/types"
@@ -16,25 +17,31 @@ type jobRunTimeError struct {
 }
 
 type Job struct {
-	id           string
-	master       types.Address
-	baseTest     string
-	hardware     string
-	code         string
-	sch          *Scheduler
-	peerList     *peer_list.PeerListInstance
-	partitionCnt uint64
+	id                  string
+	master              types.Address
+	baseTest            string
+	hardware            string
+	code                string
+	sch                 *Scheduler
+	peerList            *peer_list.PeerListInstance
+	partitionCnt        uint64
+	calculationContract *blockchain.CalculationContract
 }
 
-func NewJob(master types.Address, id, baseTest, hardware string, sch *Scheduler, partitionCnt uint64) *Job {
-	return &Job{
-		id:           id,
-		master:       master,
-		baseTest:     baseTest,
-		hardware:     hardware,
-		sch:          sch,
-		partitionCnt: partitionCnt,
+func NewJob(contractAddress, master types.Address, id, baseTest, hardware string, sch *Scheduler, partitionCnt uint64) (*Job, error) {
+	contract, err := blockchain.CalculationContractFromAddress(sch.bcHandler, contractAddress)
+	if err != nil {
+		return nil, err
 	}
+	return &Job{
+		id:                  id,
+		master:              master,
+		baseTest:            baseTest,
+		hardware:            hardware,
+		sch:                 sch,
+		partitionCnt:        partitionCnt,
+		calculationContract: contract,
+	}, nil
 }
 
 func (this *Job) Init() {
@@ -80,6 +87,8 @@ func (this *Job) handleMetaDataRes(res peer_list.MessageInfo) {
 	go this.sch.executer.Run(this.partitionCnt, resobj.PartitionIdOffset, resobj.Inputs, resobj.Code, exeResultChan)
 	exeResult := <-exeResultChan
 	fmt.Println(exeResult)
+	// ERROR HANDLE
+	this.calculationContract.Commit(nil, exeResult.result, "")
 }
 
 func (this *Job) terminate() {

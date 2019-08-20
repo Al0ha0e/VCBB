@@ -12,7 +12,7 @@ import (
 type Scheduler struct {
 	peerList        *peer_list.PeerList
 	fileSystem      *vcfs.FileSystem
-	bcHandler       blockchain.BlockChainHandler
+	bcHandler       *blockchain.EthBlockChainHandler
 	executer        Executer
 	maxJobCount     uint64
 	runningJobList  []*Job
@@ -20,13 +20,13 @@ type Scheduler struct {
 	jobError        chan jobRunTimeError
 }
 
-func NewScheduler(maxjobcnt uint64, peerlist *peer_list.PeerList, fs *vcfs.FileSystem /*bchandler blockchain.BlockChainHandler,*/, executer Executer) *Scheduler {
+func NewScheduler(maxjobcnt uint64, peerlist *peer_list.PeerList, fs *vcfs.FileSystem, bchandler *blockchain.EthBlockChainHandler, executer Executer) *Scheduler {
 	return &Scheduler{
 		maxJobCount: maxjobcnt,
 		peerList:    peerlist,
 		fileSystem:  fs,
 		executer:    executer,
-		//bcHandler:   bchandler,
+		bcHandler:   bchandler,
 	}
 }
 
@@ -50,7 +50,10 @@ func (this *Scheduler) handleSeekParticipantReq(req peer_list.MessageInfo) {
 	//fmt.Println("OBJ", reqobj)
 	//TODO: CHECK CONTRACT
 	//TODO: CHECK BASETEST&HARDWARE
-	sess := NewJob(reqobj.Master, reqobj.Id, reqobj.BaseTest, reqobj.Hardware, this, reqobj.PartitionCnt)
+	sess, err := NewJob(reqobj.ContractAddr, reqobj.Master, reqobj.Id, reqobj.BaseTest, reqobj.Hardware, this, reqobj.PartitionCnt)
+	if err != nil {
+		return
+	}
 	go sess.StartSession(req)
 }
 
