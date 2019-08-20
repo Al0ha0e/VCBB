@@ -11,7 +11,7 @@ import (
 
 type Scheduler struct {
 	ID           string
-	bcHandler    blockchain.BlockChainHandler
+	bcHandler    *blockchain.EthBlockChainHandler
 	peerList     *peer_list.PeerList
 	fileSystem   *vcfs.FileSystem
 	graph        scheduleGraph
@@ -24,7 +24,7 @@ type Scheduler struct {
 
 func NewScheduler(
 	id string,
-	bchandler blockchain.BlockChainHandler,
+	bchandler *blockchain.EthBlockChainHandler,
 	peerList *peer_list.PeerList,
 	fileSystem *vcfs.FileSystem,
 	graph scheduleGraph,

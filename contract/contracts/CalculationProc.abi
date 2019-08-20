@@ -12,6 +12,10 @@
 		"constant": false,
 		"inputs": [
 			{
+				"name": "ans",
+				"type": "string"
+			},
+			{
 				"name": "answerHash",
 				"type": "string"
 			}
@@ -61,6 +65,11 @@
 				"indexed": false,
 				"name": "participant",
 				"type": "address"
+			},
+			{
+				"indexed": false,
+				"name": "ans",
+				"type": "string"
 			},
 			{
 				"indexed": false,

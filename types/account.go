@@ -21,9 +21,13 @@ func NewAddress(str string) Address {
 }
 
 type Account struct {
-	id Address
+	Id         Address
+	PrivateKey string
 }
 
-func NewAccount(id [20]byte) *Account {
-	return &Account{id: id}
+func NewAccount(id [20]byte, privateKey string) *Account {
+	return &Account{
+		Id:         id,
+		PrivateKey: privateKey,
+	}
 }

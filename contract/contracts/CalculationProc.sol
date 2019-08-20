@@ -19,7 +19,7 @@ contract CalculationProc {
     mapping(address=>bool) blackList;
     mapping(address=>uint256)funding;
     mapping(string=>address payable[]) result;
-    event committed(address participant,string ansHash);
+    event committed(address participant,string ans,string ansHash);
     event punished(address participant);
     event terminated(string ans,uint256 cnt);
     constructor(string memory id,
@@ -40,7 +40,7 @@ contract CalculationProc {
         master = msg.sender;
         funding[master] = fund;
     }
-    function commit(string memory answerHash)public payable{
+    function commit(string memory ans,string memory answerHash)public payable{
         require(msg.value>=minimumParticipantFund,"participant fund not enough");
         require(block.timestamp>=startTime,"preparing");
         require(state==1,"not running");
@@ -52,7 +52,7 @@ contract CalculationProc {
         ansCnt++;
         answerList.push(ansInfo(answerHash,msg.sender));
         funding[msg.sender] = msg.value;
-        emit committed(msg.sender,answerHash);
+        emit committed(msg.sender,ans,answerHash);
     }
     function punish(address participant) internal {
         if(blackList[participant]) return;

@@ -13,7 +13,7 @@ import (
 func (this *Job) StartSession(sch *Scheduler) error {
 	fmt.Println("SESSION START", this.ID)
 	this.Init()
-	addr, err := this.ComputationContract.Start()
+	addr, err := this.CalculationContract.Start()
 	if err != nil {
 		return err
 	}
@@ -68,16 +68,15 @@ func (this *Job) handleMetaDataReq(req peer_list.MessageInfo) {
 	this.PeerList.Reply(req, "handleMetaDataRes", resb)
 }
 
-func (this *Job) updateAnswer(newAnswer map[string]*blockchain.Answer) (bool, error) {
-	for k, v := range newAnswer {
-		this.AnswerDistribute[k] = append(this.AnswerDistribute[k], v.Commiters...)
-		this.AnswerCnt += uint8(len(v.Commiters))
-		l := uint8(len(this.AnswerDistribute[k]))
-		if l > this.MaxAnswerCnt {
-			this.MaxAnswerCnt = l
-			this.MaxAnswer = v.Ans
-			this.MaxAnswerHash = k
-		}
+func (this *Job) updateAnswer(newAnswer *blockchain.Answer) (bool, error) {
+	k := newAnswer.AnsHash
+	this.AnswerDistribute[k] = append(this.AnswerDistribute[k], newAnswer.Commiter)
+	this.AnswerCnt++
+	l := uint8(len(this.AnswerDistribute[k]))
+	if l > this.MaxAnswerCnt {
+		this.MaxAnswerCnt = l
+		this.MaxAnswer = newAnswer.Ans
+		this.MaxAnswerHash = k
 	}
 	if this.AnswerCnt >= this.MinAnswerCnt && 2*this.MaxAnswerCnt > this.AnswerCnt {
 		return true, nil
@@ -88,8 +87,11 @@ func (this *Job) updateAnswer(newAnswer map[string]*blockchain.Answer) (bool, er
 func (this *Job) handleContractStateUpdate(sch *Scheduler) {
 	for {
 		upd := <-this.ContractStateUpdate
-		this.PeerList.UpdatePunishedPeers(upd.Punished)
-		canterminate, err := this.updateAnswer(upd.NewAnswer)
+		if len(upd.AnsHash) == 0 {
+			this.PeerList.UpdatePunishedPeer(upd.Commiter)
+			return
+		}
+		canterminate, err := this.updateAnswer(upd)
 		if err != nil {
 			continue
 		}
@@ -103,11 +105,11 @@ func (this *Job) handleContractStateUpdate(sch *Scheduler) {
 
 func (this *Job) Terminate() {
 	this.State = Finished
-	this.ComputationContract.Terminate() //TODO
+	this.CalculationContract.Terminate() //TODO
 	this.Sch.peerList.RemoveInstance(this.ID)
 	ret := &JobMeta{
 		node:             this.SchNode,
-		Contract:         this.ComputationContract.Contract,
+		Contract:         this.CalculationContract.Contract,
 		Id:               this.ID,
 		Participants:     this.AnswerDistribute[this.MaxAnswerHash],
 		PartitionAnswers: this.MaxAnswer,

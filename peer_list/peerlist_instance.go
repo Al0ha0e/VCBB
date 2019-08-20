@@ -55,7 +55,7 @@ func (this *PeerListInstance) SendDataPackTo(to types.Address, pack types.DataPa
 
 }
 
-func (this *PeerListInstance) UpdatePunishedPeers(map[string][]types.Address) {
+func (this *PeerListInstance) UpdatePunishedPeer(types.Address) {
 
 }
 

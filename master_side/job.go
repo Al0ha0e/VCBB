@@ -1,6 +1,7 @@
 package master_side
 
 import (
+	"math/big"
 	"vcbb/blockchain"
 	"vcbb/msg"
 	"vcbb/peer_list"
@@ -30,9 +31,9 @@ type Job struct {
 	PeerList            *peer_list.PeerListInstance
 	SchNode             *scheduleNode
 	Dependencies        []msg.JobMeta
-	ComputationContract *blockchain.ComputationContract
+	CalculationContract *blockchain.CalculationContract
 	AnswerDistribute    map[string][]types.Address
-	ContractStateUpdate chan *blockchain.ComputationContractUpdate
+	ContractStateUpdate chan *blockchain.Answer
 	AnswerCnt           uint8
 	MinAnswerCnt        uint8
 	MaxAnswerCnt        uint8
@@ -88,7 +89,18 @@ func NewJob(id string, sch *Scheduler, schnode *scheduleNode, minAnsCnt uint8 /*
 }
 
 func (this *Job) Init() {
-	this.ContractStateUpdate = make(chan *blockchain.ComputationContractUpdate, 1)
-	this.ComputationContract = blockchain.NewComputationContract(this.Sch.bcHandler, this.ContractStateUpdate)
+	this.ContractStateUpdate = make(chan *blockchain.Answer, 1)
+	binfo := &blockchain.ContractDeployInfo{
+		Value:    big.NewInt(130),
+		GasLimit: uint64(4712388),
+	}
+	cinfo := &blockchain.CalculationContractDeployInfo{
+		Id:               this.ID,
+		St:               big.NewInt(0),
+		Fund:             big.NewInt(100),
+		ParticipantCount: uint8(2),
+		Distribute:       [8]*big.Int{big.NewInt(20), big.NewInt(10), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0)},
+	}
+	this.CalculationContract = blockchain.NewCalculationContract(this.Sch.bcHandler, this.ContractStateUpdate, binfo, cinfo)
 	this.AnswerDistribute = make(map[string][]types.Address)
 }
