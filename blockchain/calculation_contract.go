@@ -96,16 +96,19 @@ func (this *CalculationContract) Start() (types.Address, error) {
 	if err != nil {
 		return types.Address{}, err
 	}
+	fmt.Println("OK DEPLOY", addr)
 	this.Contract = types.Address(addr)
 	this.contractInstance = instance
-	committedChan := make(chan *CalculationProcCommitted)
-	this.commitWatcher, err = this.contractInstance.WatchCommitted(&bind.WatchOpts{}, committedChan)
+	committedChan := make(chan *CalculationProcCommitted, 5)
+	this.commitWatcher, err = this.contractInstance.WatchCommitted(&bind.WatchOpts{Context: context.Background()}, committedChan)
 	if err != nil {
+		fmt.Println("COMMITERR", err)
 		return types.Address{}, err
 	}
-	punishedChan := make(chan *CalculationProcPunished)
-	this.punishWatcher, err = this.contractInstance.WatchPunished(&bind.WatchOpts{}, punishedChan)
+	punishedChan := make(chan *CalculationProcPunished, 5)
+	this.punishWatcher, err = this.contractInstance.WatchPunished(&bind.WatchOpts{Context: context.Background()}, punishedChan)
 	if err != nil {
+		fmt.Println("PUNISH ERR", err)
 		return types.Address{}, err
 	}
 	go this.watch(committedChan, punishedChan) //ERROR HANDLE
@@ -113,9 +116,11 @@ func (this *CalculationContract) Start() (types.Address, error) {
 }
 
 func (this *CalculationContract) watch(committedChan chan *CalculationProcCommitted, punishedChan chan *CalculationProcPunished) {
+	fmt.Println("WATCHING")
 	for {
 		select {
 		case commit := <-committedChan:
+			fmt.Println("RECEIVE COMMIT", commit.AnsHash, commit.Participant)
 			var ans [][]string
 			err := json.Unmarshal([]byte(commit.Ans), &ans)
 			if err != nil {
@@ -127,6 +132,7 @@ func (this *CalculationContract) watch(committedChan chan *CalculationProcCommit
 				AnsHash:  commit.AnsHash,
 			}
 		case punish := <-punishedChan:
+			fmt.Println("RECEIVE PUNISH", punish)
 			this.contractStateUpdate <- &Answer{
 				Commiter: types.Address(punish.Participant),
 			}
@@ -140,11 +146,13 @@ func (this *CalculationContract) Commit(info *ContractDeployInfo, ans [][]string
 	this.handler.lock.Lock()
 	defer this.handler.lock.Unlock()
 	ansb, _ := json.Marshal(ans)
+	fmt.Println(this.handler.account)
 	auth := bind.NewKeyedTransactor(this.handler.account.ECDSAPrivateKey)
 	auth.Value = info.Value
-	auth.GasLimit = this.basicInfo.GasLimit
+	auth.GasLimit = info.GasLimit
 	gp, err := this.handler.client.SuggestGasPrice(context.Background())
 	if err != nil {
+		fmt.Println("GAS PRICE ERR", err)
 		return err
 	}
 	auth.GasPrice = gp //this.basicInfo.GasPrice
@@ -154,6 +162,7 @@ func (this *CalculationContract) Commit(info *ContractDeployInfo, ans [][]string
 		return err
 	}
 	auth.Nonce = big.NewInt(int64(nonce))
+	fmt.Println("AUTH", auth)
 	_, err = this.contractInstance.Commit(auth, string(ansb), ansHash)
 	return err
 }

@@ -3,6 +3,9 @@ package slave_side
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
+
+	"golang.org/x/crypto/sha3"
 
 	"vcbb/blockchain"
 	"vcbb/msg"
@@ -83,12 +86,28 @@ func (this *Job) handleMetaDataRes(res peer_list.MessageInfo) {
 	fmt.Println("PARTS", parts)
 	go this.sch.fileSystem.FetchFiles(parts, oksign)
 	<-oksign
+	fmt.Println("FETCH OK TRY EXECUTE")
 	exeResultChan := make(chan *executeResult, 1)
 	go this.sch.executer.Run(this.partitionCnt, resobj.PartitionIdOffset, resobj.Inputs, resobj.Code, exeResultChan)
 	exeResult := <-exeResultChan
-	fmt.Println(exeResult)
+	fmt.Println("EXECUTE OK, ANS", exeResult)
 	// ERROR HANDLE
-	this.calculationContract.Commit(nil, exeResult.result, "")
+	var sum string
+	for _, str := range exeResult.result {
+		for _, str2 := range str {
+			sum += str2
+		}
+	}
+	sumb := make([]byte, 64)
+	sha3.ShakeSum256(sumb, []byte(sum))
+	fmt.Println("SUM", sumb, string(sumb))
+	info := &blockchain.ContractDeployInfo{
+		Value:    big.NewInt(100),
+		GasLimit: uint64(4712388),
+	}
+	//fmt.Println("CONTRACT", this.calculationContract)
+	this.calculationContract.Commit(info, exeResult.result, string(sumb))
+	fmt.Println("OK COMMIT")
 }
 
 func (this *Job) terminate() {

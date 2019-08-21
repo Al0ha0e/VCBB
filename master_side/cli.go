@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"vcbb/blockchain"
 	"vcbb/net"
 	"vcbb/peer_list"
 	"vcbb/types"
@@ -16,16 +17,26 @@ type MasterClient struct {
 	schedulers []*Scheduler
 	PeerList   *peer_list.PeerList
 	fileSystem *vcfs.FileSystem
+	bcHandler  *blockchain.EthBlockChainHandler
 }
 
-func NewMasterClient(addr types.Address, ns *net.NetSimulator) *MasterClient {
-	pl := peer_list.NewPeerList(addr, ns)
+func NewMasterClient(bcurl string, account *types.Account, ns *net.NetSimulator) (*MasterClient, error) {
+	pl := peer_list.NewPeerList(account.Id, ns)
+	bchandler, err := blockchain.NewEthBlockChainHandler(bcurl, account)
+	if err != nil {
+		return nil, err
+	}
+	kv, err := vcfs.NewRedisKVStore("localhost:6379", 1)
+	if err != nil {
+		return nil, err
+	}
 	ret := &MasterClient{
 		schedulers: make([]*Scheduler, 0),
 		PeerList:   pl,
-		fileSystem: vcfs.NewFileSystem(vcfs.NewRedisKVStore("localhost:6379", 1), pl),
+		fileSystem: vcfs.NewFileSystem(kv, pl),
+		bcHandler:  bchandler,
 	}
-	return ret
+	return ret, nil
 }
 
 func (this *MasterClient) Run() {
@@ -50,11 +61,11 @@ func (this *MasterClient) handleReq(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		return
 	}
-	sch, err := NewScheduler("test", nil, this.PeerList, this.fileSystem, graph, reqobj.OriDataHash)
+	sch, err := NewScheduler("test", this.bcHandler, this.PeerList, this.fileSystem, graph, reqobj.OriDataHash)
 	if err != nil {
 		return
 	}
-	fmt.Println(sch)
+	//fmt.Println(sch)
 	sch.Dispatch()
 	/*
 		fmt.Println(sb.OriDataHash)

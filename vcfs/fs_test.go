@@ -14,7 +14,7 @@ func tEnv(ns *net.NetSimulator, addr types.Address) *FileSystem {
 	pl := peer_list.NewPeerList(addr, ns)
 	pl.Run()
 	//eg := NewMapKVStore()
-	eg := NewRedisKVStore("localhost:6379", 2)
+	eg, _ := NewRedisKVStore("localhost:6379", 2)
 	return NewFileSystem(eg, pl)
 }
 

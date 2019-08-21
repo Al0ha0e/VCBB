@@ -89,7 +89,7 @@ func NewJob(id string, sch *Scheduler, schnode *scheduleNode, minAnsCnt uint8 /*
 }
 
 func (this *Job) Init() {
-	this.ContractStateUpdate = make(chan *blockchain.Answer, 1)
+	this.ContractStateUpdate = make(chan *blockchain.Answer, 5)
 	binfo := &blockchain.ContractDeployInfo{
 		Value:    big.NewInt(130),
 		GasLimit: uint64(4712388),

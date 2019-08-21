@@ -15,8 +15,10 @@ func (this *Job) StartSession(sch *Scheduler) error {
 	this.Init()
 	addr, err := this.CalculationContract.Start()
 	if err != nil {
+		fmt.Println("CONTRACT ERR", err)
 		return err
 	}
+	fmt.Println("CONTRACT", addr)
 	this.PeerList.AddCallBack("handleMetaDataReq", this.handleMetaDataReq)
 	req, err := this.getComputationReq(addr)
 	//err = this.PeerList.BroadCastRPC(this.ID, peer_list.SeekParticipantReq, req) //(req)
@@ -69,6 +71,7 @@ func (this *Job) handleMetaDataReq(req peer_list.MessageInfo) {
 }
 
 func (this *Job) updateAnswer(newAnswer *blockchain.Answer) (bool, error) {
+	fmt.Println("UPD ANS", newAnswer.Ans, newAnswer.AnsHash, newAnswer.Commiter)
 	k := newAnswer.AnsHash
 	this.AnswerDistribute[k] = append(this.AnswerDistribute[k], newAnswer.Commiter)
 	this.AnswerCnt++

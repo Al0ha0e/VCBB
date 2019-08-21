@@ -38,8 +38,11 @@ type redisKVStore struct {
 	lock   sync.Mutex
 }
 
-func NewRedisKVStore(addr string, db int) *redisKVStore {
-	c, _ := redis.Dial("tcp", addr, redis.DialDatabase(db))
+func NewRedisKVStore(addr string, db int) (*redisKVStore, error) {
+	c, err := redis.Dial("tcp", addr, redis.DialDatabase(db))
+	if err != nil {
+		return nil, err
+	}
 	return &redisKVStore{
 		addr:   addr,
 		client: c,
@@ -48,7 +51,7 @@ func NewRedisKVStore(addr string, db int) *redisKVStore {
 			DB:       db,
 			PoolSize: 12,
 		}),*/
-	}
+	}, nil
 }
 
 func (this *redisKVStore) Get(key string) ([]byte, error) {

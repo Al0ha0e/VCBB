@@ -51,7 +51,7 @@ func getSch(addr types.Address, ns *net.NetSimulator) *Scheduler {
 	fs := vcfs.NewFileSystem(eg, pl)
 	fs.Serve()
 	exe := NewPyExecuter(url)
-	sch := NewScheduler(100, pl, fs, exe)
+	sch := NewScheduler(100, pl, fs, nil, exe)
 	return sch
 }
 

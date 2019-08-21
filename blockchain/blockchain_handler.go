@@ -13,19 +13,21 @@ type BlockChainHandler interface {
 }
 
 type EthBlockChainHandler struct {
-	client  *ethclient.Client
-	account types.Account
-	lock    sync.Mutex
+	blockchainUrl string
+	client        *ethclient.Client
+	account       *types.Account
+	lock          sync.Mutex
 }
 
-func NewEthBlockChainHandler(url string, account types.Account) (*EthBlockChainHandler, error) {
+func NewEthBlockChainHandler(url string, account *types.Account) (*EthBlockChainHandler, error) {
 	cli, err := ethclient.Dial(url)
 	if err != nil {
 		return nil, err
 	}
 	return &EthBlockChainHandler{
-		client:  cli,
-		account: account,
+		blockchainUrl: url,
+		account:       account,
+		client:        cli,
 	}, nil
 }
 
