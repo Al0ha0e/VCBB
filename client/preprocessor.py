@@ -97,7 +97,7 @@ def preprocess(dataNodeCnt, computeNodes):
                 num = cnt
             cnt -= 3
             schNodes.append(
-                schNode(next(nid), node.processor, num, offset, 3, node))
+                schNode(next(nid), node.processor, num, offset, 1, node))
             offset += 3
     for node in schNodes:
         inmp = node.cpNode.inputMapper

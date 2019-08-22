@@ -33,6 +33,7 @@ type Job struct {
 	Dependencies        []msg.JobMeta
 	CalculationContract *blockchain.CalculationContract
 	AnswerDistribute    map[string][]types.Address
+	ParticipantState    map[string]bool
 	ContractStateUpdate chan *blockchain.Answer
 	AnswerCnt           uint8
 	MinAnswerCnt        uint8

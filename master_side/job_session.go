@@ -71,7 +71,10 @@ func (this *Job) handleMetaDataReq(req peer_list.MessageInfo) {
 }
 
 func (this *Job) updateAnswer(newAnswer *blockchain.Answer) (bool, error) {
-	fmt.Println("UPD ANS", newAnswer.Ans, newAnswer.AnsHash, newAnswer.Commiter)
+	//fmt.Println("UPD ANS", newAnswer.Ans, newAnswer.AnsHash, newAnswer.Commiter)
+	if this.ParticipantState[newAnswer.Commiter.ToString()] {
+		return false, nil
+	}
 	k := newAnswer.AnsHash
 	this.AnswerDistribute[k] = append(this.AnswerDistribute[k], newAnswer.Commiter)
 	this.AnswerCnt++
@@ -82,6 +85,7 @@ func (this *Job) updateAnswer(newAnswer *blockchain.Answer) (bool, error) {
 		this.MaxAnswerHash = k
 	}
 	if this.AnswerCnt >= this.MinAnswerCnt && 2*this.MaxAnswerCnt > this.AnswerCnt {
+		fmt.Println("CAN TERMINATE", this.ID)
 		return true, nil
 	}
 	return false, nil
@@ -118,4 +122,5 @@ func (this *Job) Terminate() {
 		PartitionAnswers: this.MaxAnswer,
 	}
 	this.Sch.result <- ret
+	fmt.Println("TERMINATED", this.ID)
 }

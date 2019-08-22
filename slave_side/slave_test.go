@@ -47,7 +47,7 @@ addr3 := types.NewAddress("0xd247126aa720779a4172b88405ec2ad29c6a22d3")
 func getSch(addr types.Address, ns *net.NetSimulator) *Scheduler {
 	pl := peer_list.NewPeerList(addr, ns)
 	pl.Run()
-	eg := vcfs.NewRedisKVStore("localhost:6379", 0)
+	eg,_ := vcfs.NewRedisKVStore("localhost:6379", 0)
 	fs := vcfs.NewFileSystem(eg, pl)
 	fs.Serve()
 	exe := NewPyExecuter(url)

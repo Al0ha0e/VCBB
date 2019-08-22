@@ -22,6 +22,7 @@ type CalculationContract struct {
 	info                *CalculationContractDeployInfo
 	commitWatcher       event.Subscription
 	punishWatcher       event.Subscription
+	terminateWatcher    event.Subscription
 	stopSiganl          chan struct{}
 }
 
@@ -81,16 +82,20 @@ func (this *CalculationContract) Start() (types.Address, error) {
 	auth := bind.NewKeyedTransactor(this.handler.account.ECDSAPrivateKey)
 	auth.Value = this.basicInfo.Value
 	auth.GasLimit = this.basicInfo.GasLimit
+	fmt.Println("TRY GASPRICE")
 	gp, err := this.handler.client.SuggestGasPrice(context.Background())
 	if err != nil {
 		return types.Address{}, err
 	}
+	fmt.Println("GP OK", gp)
 	auth.GasPrice = gp //this.basicInfo.GasPrice
+	fmt.Println("TRY NONCE")
 	nonce, err := this.handler.client.PendingNonceAt(context.Background(), common.Address(this.handler.account.Id))
 	if err != nil {
 		fmt.Println("NONCE", err)
 		return types.Address{}, err
 	}
+	fmt.Println("NONCE OK", nonce)
 	auth.Nonce = big.NewInt(int64(nonce))
 	addr, _, instance, err := DeployCalculationProc(auth, this.handler.client, this.info.Id, this.info.St, this.info.Fund, this.info.ParticipantCount, this.info.Distribute)
 	if err != nil {
@@ -106,16 +111,22 @@ func (this *CalculationContract) Start() (types.Address, error) {
 		return types.Address{}, err
 	}
 	punishedChan := make(chan *CalculationProcPunished, 5)
-	this.punishWatcher, err = this.contractInstance.WatchPunished(&bind.WatchOpts{Context: context.Background()}, punishedChan)
+	this.punishWatcher, err = this.contractInstance.WatchPunished(nil /*&bind.WatchOpts{Context: context.Background()}*/, punishedChan)
 	if err != nil {
 		fmt.Println("PUNISH ERR", err)
 		return types.Address{}, err
 	}
-	go this.watch(committedChan, punishedChan) //ERROR HANDLE
+	terminatedChan := make(chan *CalculationProcTerminated, 5)
+	this.terminateWatcher, err = this.contractInstance.WatchTerminated(nil, terminatedChan)
+	if err != nil {
+		fmt.Println("TERMINATE ERR", err)
+		return types.Address{}, err
+	}
+	go this.watch(committedChan, punishedChan, terminatedChan) //ERROR HANDLE
 	return this.Contract, nil
 }
 
-func (this *CalculationContract) watch(committedChan chan *CalculationProcCommitted, punishedChan chan *CalculationProcPunished) {
+func (this *CalculationContract) watch(committedChan chan *CalculationProcCommitted, punishedChan chan *CalculationProcPunished, terminatedChan chan *CalculationProcTerminated) {
 	fmt.Println("WATCHING")
 	for {
 		select {
@@ -131,11 +142,17 @@ func (this *CalculationContract) watch(committedChan chan *CalculationProcCommit
 				Ans:      ans,
 				AnsHash:  commit.AnsHash,
 			}
+		case err := <-this.commitWatcher.Err():
+			fmt.Println("COMMIT ERR", err)
 		case punish := <-punishedChan:
 			fmt.Println("RECEIVE PUNISH", punish)
 			this.contractStateUpdate <- &Answer{
 				Commiter: types.Address(punish.Participant),
 			}
+		case err := <- this.punishWatcher.Err():
+		fmt.Println("PUNISH ERR",err)
+		case terminate := <-terminatedChan:
+			fmt.Println("TERMINATE", terminate)
 		case <-this.stopSiganl:
 			return
 		}
@@ -150,17 +167,21 @@ func (this *CalculationContract) Commit(info *ContractDeployInfo, ans [][]string
 	auth := bind.NewKeyedTransactor(this.handler.account.ECDSAPrivateKey)
 	auth.Value = info.Value
 	auth.GasLimit = info.GasLimit
+	//fmt.Println("TRY GASPRICE")
 	gp, err := this.handler.client.SuggestGasPrice(context.Background())
 	if err != nil {
 		fmt.Println("GAS PRICE ERR", err)
 		return err
 	}
+	//fmt.Println("GP OK", gp)
 	auth.GasPrice = gp //this.basicInfo.GasPrice
+	//fmt.Println("TRY NONCE")
 	nonce, err := this.handler.client.PendingNonceAt(context.Background(), common.Address(this.handler.account.Id))
 	if err != nil {
 		fmt.Println("NONCE", err)
 		return err
 	}
+	//fmt.Println("NONCE OK", nonce)
 	auth.Nonce = big.NewInt(int64(nonce))
 	fmt.Println("AUTH", auth)
 	_, err = this.contractInstance.Commit(auth, string(ansb), ansHash)
@@ -188,6 +209,7 @@ func (this *CalculationContract) Terminate() error {
 	close(this.contractStateUpdate)
 	this.punishWatcher.Unsubscribe()
 	this.commitWatcher.Unsubscribe()
+	this.terminateWatcher.Unsubscribe()
 	this.stopSiganl <- *new(struct{})
 	close(this.stopSiganl)
 	return nil
