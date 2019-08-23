@@ -49,8 +49,10 @@ type CalculationContractUpdate struct {
 func CalculationContractFromAddress(handler *EthBlockChainHandler, addr types.Address) (*CalculationContract, error) {
 	instance, err := NewCalculationProc(common.Address(addr), handler.client)
 	if err != nil {
+		//handler.logger.Log("CalcContractFromAddress " + addr.ToString() + "Err: " + err.Error())
 		return nil, err
 	}
+	//handler.logger.Log("CalcContractFromAddress " + addr.ToString() + "Created")
 	return &CalculationContract{
 		handler:          handler,
 		stopSiganl:       make(chan struct{}),
@@ -65,6 +67,7 @@ func NewCalculationContract(
 	basicInfo *ContractDeployInfo,
 	info *CalculationContractDeployInfo,
 ) *CalculationContract {
+	//handler.logger.Log("CalcContract Created by: " + handler.account.Id.ToString())
 	return &CalculationContract{
 		handler:             handler,
 		contractStateUpdate: contractStateUpdate,
@@ -77,6 +80,7 @@ func NewCalculationContract(
 }
 
 func (this *CalculationContract) Start() (types.Address, error) {
+	//this.handler.logger.Log("CalculationContract Try Start")
 	this.handler.lock.Lock()
 	defer this.handler.lock.Unlock()
 	auth := bind.NewKeyedTransactor(this.handler.account.ECDSAPrivateKey)
@@ -131,7 +135,7 @@ func (this *CalculationContract) watch(committedChan chan *CalculationProcCommit
 	for {
 		select {
 		case commit := <-committedChan:
-			fmt.Println("RECEIVE COMMIT", commit.AnsHash, commit.Participant)
+			fmt.Println("RECEIVE COMMIT", commit.Ans, commit.AnsHash, commit.Participant)
 			var ans [][]string
 			err := json.Unmarshal([]byte(commit.Ans), &ans)
 			if err != nil {
@@ -141,19 +145,20 @@ func (this *CalculationContract) watch(committedChan chan *CalculationProcCommit
 				Commiter: types.Address(commit.Participant),
 				Ans:      ans,
 				AnsHash:  commit.AnsHash,
-			}
-		case err := <-this.commitWatcher.Err():
-			fmt.Println("COMMIT ERR", err)
+			} /*
+				case err := <-this.commitWatcher.Err():
+					fmt.Println("COMMIT ERR", err)*/
 		case punish := <-punishedChan:
 			fmt.Println("RECEIVE PUNISH", punish)
 			this.contractStateUpdate <- &Answer{
 				Commiter: types.Address(punish.Participant),
-			}
-		case err := <- this.punishWatcher.Err():
-		fmt.Println("PUNISH ERR",err)
+			} /*
+				case err := <- this.punishWatcher.Err():
+				fmt.Println("PUNISH ERR",err)*/
 		case terminate := <-terminatedChan:
 			fmt.Println("TERMINATE", terminate)
 		case <-this.stopSiganl:
+			fmt.Println("CONTRACT STOP")
 			return
 		}
 	}

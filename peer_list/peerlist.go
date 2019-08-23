@@ -17,12 +17,12 @@ type PeerList struct {
 	instances map[string]*PeerListInstance
 	callBack  map[string]func(MessageInfo)
 	//channels   map[string]chan MessageInfo
-	netService *net.NetSimulator
+	netService net.NetService
 	bus        chan []byte
 	stopSignal chan struct{}
 }
 
-func NewPeerList(addr types.Address, ns *net.NetSimulator) *PeerList {
+func NewPeerList(addr types.Address, ns net.NetService) *PeerList {
 	return &PeerList{
 		Address:   addr,
 		Peers:     make([]types.Address, 0, 10),

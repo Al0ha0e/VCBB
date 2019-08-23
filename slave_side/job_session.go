@@ -75,7 +75,7 @@ func (this *Job) handleMetaDataRes(res peer_list.MessageInfo) {
 		}
 		return
 	}
-	//fmt.Println("OBJ", resobj)
+	fmt.Println("META OBJ", resobj)
 	this.code = resobj.Code
 	oksign := make(chan struct{}, 1)
 	parts := make([]vcfs.FilePart, len(resobj.DependencyMeta))
@@ -95,6 +95,7 @@ func (this *Job) handleMetaDataRes(res peer_list.MessageInfo) {
 	var sum string
 	for _, str := range exeResult.result {
 		for _, str2 := range str {
+			this.sch.fileSystem.SetInfo(str2)
 			sum += str2
 		}
 	}

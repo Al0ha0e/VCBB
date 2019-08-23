@@ -2,6 +2,7 @@ package slave_side
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"vcbb/blockchain"
 	"vcbb/msg"
@@ -37,6 +38,7 @@ func (this *Scheduler) Init() {
 }
 
 func (this *Scheduler) Run() {
+	fmt.Println("SLAVE START")
 	this.Init()
 	this.peerList.AddCallBack("handleSeekParticipantReq", this.handleSeekParticipantReq)
 }

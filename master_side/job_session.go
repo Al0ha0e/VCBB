@@ -71,7 +71,7 @@ func (this *Job) handleMetaDataReq(req peer_list.MessageInfo) {
 }
 
 func (this *Job) updateAnswer(newAnswer *blockchain.Answer) (bool, error) {
-	//fmt.Println("UPD ANS", newAnswer.Ans, newAnswer.AnsHash, newAnswer.Commiter)
+	fmt.Println("UPD ANS", newAnswer.Ans, newAnswer.AnsHash, newAnswer.Commiter)
 	if this.ParticipantState[newAnswer.Commiter.ToString()] {
 		return false, nil
 	}
@@ -79,6 +79,7 @@ func (this *Job) updateAnswer(newAnswer *blockchain.Answer) (bool, error) {
 	this.AnswerDistribute[k] = append(this.AnswerDistribute[k], newAnswer.Commiter)
 	this.AnswerCnt++
 	l := uint8(len(this.AnswerDistribute[k]))
+	fmt.Println("L MAS_ANS_CNT", l, this.MaxAnswerCnt)
 	if l > this.MaxAnswerCnt {
 		this.MaxAnswerCnt = l
 		this.MaxAnswer = newAnswer.Ans
@@ -96,7 +97,7 @@ func (this *Job) handleContractStateUpdate(sch *Scheduler) {
 		upd := <-this.ContractStateUpdate
 		if len(upd.AnsHash) == 0 {
 			this.PeerList.UpdatePunishedPeer(upd.Commiter)
-			return
+			continue
 		}
 		canterminate, err := this.updateAnswer(upd)
 		if err != nil {

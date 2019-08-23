@@ -6,9 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"vcbb/blockchain"
-	"vcbb/net"
 	"vcbb/peer_list"
-	"vcbb/types"
 	"vcbb/vcfs"
 )
 
@@ -20,31 +18,32 @@ type MasterClient struct {
 	bcHandler  *blockchain.EthBlockChainHandler
 }
 
-func NewMasterClient(bcurl string, account *types.Account, ns *net.NetSimulator) (*MasterClient, error) {
-	pl := peer_list.NewPeerList(account.Id, ns)
-	bchandler, err := blockchain.NewEthBlockChainHandler(bcurl, account)
-	if err != nil {
-		return nil, err
-	}
-	kv, err := vcfs.NewRedisKVStore("localhost:6379", 1)
-	if err != nil {
-		return nil, err
-	}
+func NewMasterClient( /*bcurl string,*/ pl *peer_list.PeerList, fs *vcfs.FileSystem, bchandler *blockchain.EthBlockChainHandler /*, account *types.Account, ns net.NetService*/) (*MasterClient, error) {
+	/*
+		pl := peer_list.NewPeerList(account.Id, ns)
+		bchandler, err := blockchain.NewEthBlockChainHandler(bcurl, account)
+		if err != nil {
+			return nil, err
+		}
+		kv, err := vcfs.NewRedisKVStore("localhost:6379", 1)
+		if err != nil {
+			return nil, err
+		}*/
 	ret := &MasterClient{
 		schedulers: make([]*Scheduler, 0),
 		PeerList:   pl,
-		fileSystem: vcfs.NewFileSystem(kv, pl),
+		fileSystem: fs, //vcfs.NewFileSystem(kv, pl),
 		bcHandler:  bchandler,
 	}
 	return ret, nil
 }
 
-func (this *MasterClient) Run() {
+func (this *MasterClient) Run(url string) {
 	fmt.Println("ST")
-	this.PeerList.Run()
-	this.fileSystem.Serve()
+	//this.PeerList.Run()
+	//this.fileSystem.Serve()
 	http.HandleFunc("/commitSchGraph", this.handleReq)
-	go http.ListenAndServe(":8080", nil)
+	go http.ListenAndServe(url /*":8080"*/, nil)
 }
 
 func (this *MasterClient) handleReq(w http.ResponseWriter, req *http.Request) {
@@ -61,12 +60,21 @@ func (this *MasterClient) handleReq(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		return
 	}
-	sch, err := NewScheduler("test", this.bcHandler, this.PeerList, this.fileSystem, graph, reqobj.OriDataHash)
+	result := make(chan [][]string, 1)
+	sch, err := NewScheduler("test", this.bcHandler, this.PeerList, this.fileSystem, graph, reqobj.OriDataHash, result)
 	if err != nil {
 		return
 	}
 	//fmt.Println(sch)
 	sch.Dispatch()
+	ans := <-result
+	fmt.Println("OVER", ans)
+	for _, partition := range ans {
+		for _, anshash := range partition {
+			ansdata, _ := this.fileSystem.Get(anshash)
+			fmt.Println(string(ansdata))
+		}
+	}
 	/*
 		fmt.Println(sb.OriDataHash)
 		for _, node := range sb.SchGraph {

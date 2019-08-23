@@ -3,6 +3,7 @@ package blockchain
 import (
 	"math/big"
 	"sync"
+	"vcbb/log"
 	"vcbb/types"
 
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -17,9 +18,10 @@ type EthBlockChainHandler struct {
 	client        *ethclient.Client
 	account       *types.Account
 	lock          sync.Mutex
+	logger        *log.LoggerInstance
 }
 
-func NewEthBlockChainHandler(url string, account *types.Account) (*EthBlockChainHandler, error) {
+func NewEthBlockChainHandler(url string, account *types.Account /*, logSystem *log.LogSystem*/) (*EthBlockChainHandler, error) {
 	cli, err := ethclient.Dial(url)
 	if err != nil {
 		return nil, err
@@ -28,6 +30,7 @@ func NewEthBlockChainHandler(url string, account *types.Account) (*EthBlockChain
 		blockchainUrl: url,
 		account:       account,
 		client:        cli,
+		//logger:        logSystem.GetInstance(log.Topic("EthBlockchainHandler")),
 	}, nil
 }
 

@@ -22,7 +22,7 @@ type UDPNetService struct {
 }
 
 func NewUDPInfo(addr string) (*UDPInfo, error) {
-	udpaddr, err := net.ResolveUDPAddr("udp4", addr)
+	udpaddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		return nil, err
 	}
@@ -65,6 +65,7 @@ func (this *UDPNetService) serve() {
 		if err != nil {
 			continue
 		}
+		fmt.Println("RECEIVE MSG")
 		this.bus <- buffer[:l]
 	}
 }
@@ -72,19 +73,19 @@ func (this *UDPNetService) serve() {
 func (this *UDPNetService) RegisterUser(name string, ch chan []byte) {
 	this.bus = ch
 }
-func (this *UDPNetService) SendMessageTo(name string, content []byte) error {
+func (this *UDPNetService) SendMessageTo(name string, content []byte) /*error*/ {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	info := this.peers[name]
 	if info == nil {
-		return fmt.Errorf("PEER NOT EXIST")
+		return // fmt.Errorf("PEER NOT EXIST")
 	}
 	conn, err := net.DialUDP("udp", this.info[1].udpAddr, info.udpAddr)
 	if err != nil {
-		return err
+		fmt.Println("UDP DIAL ERR", err)
 	}
-	_, err = conn.WriteToUDP(content, info.udpAddr)
-	return err
+	conn.Write(content)
+	conn.Close()
 }
 
 func (this *UDPNetService) AddPeer(account types.Address, udpAddr string) {

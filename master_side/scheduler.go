@@ -18,6 +18,7 @@ type Scheduler struct {
 	result       chan *JobMeta
 	originalData map[string]string
 	idSource     *types.UniqueRandomIDSource
+	finalResult  chan [][]string
 	//oriDataTransportSession *data.DataTransportSession
 	//originalDataTracker     *data.Tracker
 }
@@ -29,6 +30,7 @@ func NewScheduler(
 	fileSystem *vcfs.FileSystem,
 	graph scheduleGraph,
 	oridata map[string]string,
+	result chan [][]string,
 ) (*Scheduler, error) {
 	err := checkGraph(graph)
 	if err != nil {
@@ -43,6 +45,7 @@ func NewScheduler(
 		result:       make(chan *JobMeta, 100),
 		originalData: oridata,
 		idSource:     types.NewUniqueRandomIDSource(32),
+		finalResult:  result,
 	}, nil
 }
 
@@ -105,7 +108,26 @@ func (this *Scheduler) Dispatch() error {
 func (this *Scheduler) watch() {
 	for {
 		jobmeta := <-this.result
+		fmt.Println("JOB META", jobmeta.Contract, jobmeta.Id, jobmeta.Participants, jobmeta.PartitionAnswers)
 		node := jobmeta.node
+		if node.outdeg+node.controlOutdeg == 0 {
+			var keys []string
+			for _, partitions := range jobmeta.PartitionAnswers {
+				for _, answer := range partitions {
+					keys = append(keys, answer)
+				}
+			}
+			part := vcfs.FilePart{
+				Peers: jobmeta.Participants,
+				Keys:  keys,
+			}
+			ok := make(chan struct{}, 1)
+			this.fileSystem.FetchFiles([]vcfs.FilePart{part}, ok)
+			<-ok
+			fmt.Println("FINAL PURCHASE OK")
+			this.finalResult <- jobmeta.PartitionAnswers
+			return
+		}
 		for _, to := range node.outNodes {
 			to.indeg--
 			//to.dependencies = append(to.dependencies, &Dependency{DependencyJob: jobmeta.job, DependencyJobMeta: jobmeta})

@@ -42,9 +42,12 @@ func TestCalcContractDeploy(t *testing.T) {
 }*/
 
 func TestCalcContractCommit(t *testing.T) {
-	addr := types.NewAddress("0x2acaac851b020ceb644bc506a3a932f4d0867afd")
-	pvi := "3b82b9641714c4bb9a3e3a23ca9e8170772fcdeedd9e4591e7d03ebe564a579e"
+	addr := types.NewAddress("0x53143B153321E9cBC268C806aFeF444346AA6522" /*"0x2acaac851b020ceb644bc506a3a932f4d0867afd"*/)
+	pvi := "52533c066a5b3ddc6848fd692b93abc6025d06aa5a220f67213c619a6ded8d3a" //"3b82b9641714c4bb9a3e3a23ca9e8170772fcdeedd9e4591e7d03ebe564a579e"
+	addr2 := types.NewAddress("0xe3b2d0E78a88cB0139aFC7A08733766F5C788A12" /*"0x9c67d6e615fb9fb28ddad773fbcfa8e5dad092f3"*/)
+	pri2 := "680771f89fa288c71a113846de2b953bfedb6da300e1747a1d1b51f2a43a10c5" //"ee09c465edc1674d382157f9edb26681707b79b31cab452450776a2a1ad57be5"
 	acco := types.NewAccount(addr, pvi)
+	//log, _ := log.NewLogSystem("")
 	hdl, err := NewEthBlockChainHandler("ws://127.0.0.1:8546", acco)
 	if err != nil {
 		t.Error("HANDLER", err)
@@ -67,6 +70,9 @@ func TestCalcContractCommit(t *testing.T) {
 		for {
 			ans := <-up
 			fmt.Println("NEW ANSWER", ans)
+			if ans == nil {
+				return
+			}
 		}
 	}()
 	caddr, err := ct.Start()
@@ -74,8 +80,6 @@ func TestCalcContractCommit(t *testing.T) {
 		t.Error("DEPLOY", err)
 	}
 	fmt.Println(caddr)
-	addr2 := types.NewAddress("0x9c67d6e615fb9fb28ddad773fbcfa8e5dad092f3")
-	pri2 := "ee09c465edc1674d382157f9edb26681707b79b31cab452450776a2a1ad57be5"
 	acco2 := types.NewAccount(addr2, pri2)
 	hdl2, _ := NewEthBlockChainHandler("ws://localhost:8546", acco2)
 	ct2, _ := CalculationContractFromAddress(hdl2, caddr)
@@ -91,6 +95,7 @@ func TestCalcContractCommit(t *testing.T) {
 	if err != nil {
 		t.Error("COMMIT ERR", err)
 	}
+	ct.Terminate()
 	for {
 	}
 }
