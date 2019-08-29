@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"vcbb/log"
 	"vcbb/types"
 )
 
@@ -42,10 +43,10 @@ func TestCalcContractDeploy(t *testing.T) {
 }*/
 
 func TestCalcContractCommit(t *testing.T) {
-	addr := types.NewAddress("0x53143B153321E9cBC268C806aFeF444346AA6522" /*"0x2acaac851b020ceb644bc506a3a932f4d0867afd"*/)
-	pvi := "52533c066a5b3ddc6848fd692b93abc6025d06aa5a220f67213c619a6ded8d3a" //"3b82b9641714c4bb9a3e3a23ca9e8170772fcdeedd9e4591e7d03ebe564a579e"
-	addr2 := types.NewAddress("0xe3b2d0E78a88cB0139aFC7A08733766F5C788A12" /*"0x9c67d6e615fb9fb28ddad773fbcfa8e5dad092f3"*/)
-	pri2 := "680771f89fa288c71a113846de2b953bfedb6da300e1747a1d1b51f2a43a10c5" //"ee09c465edc1674d382157f9edb26681707b79b31cab452450776a2a1ad57be5"
+	addr := types.NewAddress("0xd26a07eCEF7DE02219eAe820E64f603149F2b72E" /*"0x2acaac851b020ceb644bc506a3a932f4d0867afd"*/)
+	pvi := "231cb43a3ce4c58c10e3c6e7496a5680ca4eefa306195239ec3f70642124d343" //"3b82b9641714c4bb9a3e3a23ca9e8170772fcdeedd9e4591e7d03ebe564a579e"
+	addr2 := types.NewAddress("0xc1f29f5e82d6c7c17E7bd468fa473d671a17EEF4" /*"0x9c67d6e615fb9fb28ddad773fbcfa8e5dad092f3"*/)
+	pri2 := "52bbb5b8fa5e38355dffbf63af80b81e4b7b35813160c372fa6f448502dbce38" //"ee09c465edc1674d382157f9edb26681707b79b31cab452450776a2a1ad57be5"
 	acco := types.NewAccount(addr, pvi)
 	//log, _ := log.NewLogSystem("")
 	hdl, err := NewEthBlockChainHandler("ws://127.0.0.1:8546", acco)
@@ -65,7 +66,8 @@ func TestCalcContractCommit(t *testing.T) {
 		Distribute:       [8]*big.Int{big.NewInt(20), big.NewInt(10), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0)},
 	}
 	up := make(chan *Answer, 5)
-	ct := NewCalculationContract(hdl, up, binfo, cinfo)
+	ls, _ := log.NewLogSystem("")
+	ct := NewCalculationContract(hdl, up, binfo, cinfo, ls.GetInstance("Test Contract"))
 	go func() {
 		for {
 			ans := <-up
@@ -82,7 +84,7 @@ func TestCalcContractCommit(t *testing.T) {
 	fmt.Println(caddr)
 	acco2 := types.NewAccount(addr2, pri2)
 	hdl2, _ := NewEthBlockChainHandler("ws://localhost:8546", acco2)
-	ct2, _ := CalculationContractFromAddress(hdl2, caddr)
+	ct2, _ := CalculationContractFromAddress(hdl2, caddr, ls.GetInstance("Test Contract From Address"))
 	info2 := &ContractDeployInfo{
 		Value:    big.NewInt(100),
 		GasLimit: uint64(4712388),

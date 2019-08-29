@@ -9,12 +9,13 @@ func TestLog(t *testing.T) {
 		return
 	}
 	lg := ls.GetInstance("TESTTOPIC")
-	err = lg.Log("hhhhh")
-	if err != nil {
-		t.Error(err)
-	}
-	err = lg.Log("hhhhh2333")
-	if err != nil {
-		t.Error(err)
-	}
+	lg2 := lg.GetSubInstance("TEST2")
+	lg3 := lg.GetSubInstance("TEST3")
+	lg.Log("hhhhh")
+	lg.Log("hhhhh2333")
+	lg2.Log("MMMMM")
+	lg3.Log("0000")
+	lg.Err("KKK")
+	lg2.Err("KMM")
+	lg3.Err("114514")
 }

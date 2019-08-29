@@ -3,8 +3,9 @@ package blockchain
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math/big"
+	"strconv"
+	"vcbb/log"
 	"vcbb/types"
 
 	"github.com/ethereum/go-ethereum/event"
@@ -23,6 +24,7 @@ type CalculationContract struct {
 	commitWatcher       event.Subscription
 	punishWatcher       event.Subscription
 	terminateWatcher    event.Subscription
+	logger              *log.LoggerInstance
 	stopSiganl          chan struct{}
 }
 
@@ -46,19 +48,23 @@ type CalculationContractUpdate struct {
 	Punished  map[string][]types.Address
 }*/
 
-func CalculationContractFromAddress(handler *EthBlockChainHandler, addr types.Address) (*CalculationContract, error) {
+func CalculationContractFromAddress(handler *EthBlockChainHandler, addr types.Address, fatherLogger *log.LoggerInstance) (*CalculationContract, error) {
+	logger := fatherLogger.GetSubInstance(log.Topic(addr.ToString()))
+	logger.Log("Try Create From Address")
 	instance, err := NewCalculationProc(common.Address(addr), handler.client)
 	if err != nil {
-		//handler.logger.Log("CalcContractFromAddress " + addr.ToString() + "Err: " + err.Error())
+		logger.Err(err.Error())
 		return nil, err
 	}
-	//handler.logger.Log("CalcContractFromAddress " + addr.ToString() + "Created")
-	return &CalculationContract{
+	ret := &CalculationContract{
 		handler:          handler,
 		stopSiganl:       make(chan struct{}),
 		Contract:         addr,
 		contractInstance: instance,
-	}, nil
+		logger:           logger,
+	}
+	logger.Log("Contract Created From Address")
+	return ret, nil
 }
 
 func NewCalculationContract(
@@ -66,79 +72,90 @@ func NewCalculationContract(
 	contractStateUpdate chan *Answer,
 	basicInfo *ContractDeployInfo,
 	info *CalculationContractDeployInfo,
+	fatherLogger *log.LoggerInstance,
 ) *CalculationContract {
-	//handler.logger.Log("CalcContract Created by: " + handler.account.Id.ToString())
+	fatherLogger.Log("CalcContract Created by: " + handler.account.Id.ToString())
 	return &CalculationContract{
 		handler:             handler,
 		contractStateUpdate: contractStateUpdate,
 		basicInfo:           basicInfo,
 		info:                info,
 		stopSiganl:          make(chan struct{}),
+		logger:              fatherLogger, // CAUTION
 		//Contract:            types.Address(addr)
 		//contractInstance:    instance,,
 	}
 }
 
 func (this *CalculationContract) Start() (types.Address, error) {
-	//this.handler.logger.Log("CalculationContract Try Start")
+	this.logger.Log("CalculationContract Try Start")
 	this.handler.lock.Lock()
 	defer this.handler.lock.Unlock()
 	auth := bind.NewKeyedTransactor(this.handler.account.ECDSAPrivateKey)
 	auth.Value = this.basicInfo.Value
 	auth.GasLimit = this.basicInfo.GasLimit
-	fmt.Println("TRY GASPRICE")
+	this.logger.Log("Try To Get GasPrice")
 	gp, err := this.handler.client.SuggestGasPrice(context.Background())
 	if err != nil {
+		this.logger.Err("Fail To Get GasPrice " + err.Error())
 		return types.Address{}, err
 	}
-	fmt.Println("GP OK", gp)
+	this.logger.Log("GasPrice " + gp.Text(10))
 	auth.GasPrice = gp //this.basicInfo.GasPrice
-	fmt.Println("TRY NONCE")
+	this.logger.Log("Try To Get Nonce")
 	nonce, err := this.handler.client.PendingNonceAt(context.Background(), common.Address(this.handler.account.Id))
 	if err != nil {
-		fmt.Println("NONCE", err)
+		this.logger.Err("Fail To Get Nonce " + err.Error())
 		return types.Address{}, err
 	}
-	fmt.Println("NONCE OK", nonce)
+	this.logger.Log("Nonce " + strconv.Itoa(int(nonce)))
 	auth.Nonce = big.NewInt(int64(nonce))
+	this.logger.Log("Try To Deploy Contract")
 	addr, _, instance, err := DeployCalculationProc(auth, this.handler.client, this.info.Id, this.info.St, this.info.Fund, this.info.ParticipantCount, this.info.Distribute)
 	if err != nil {
+		this.logger.Err("Fail To Deploy Contract " + err.Error())
 		return types.Address{}, err
 	}
-	fmt.Println("OK DEPLOY", addr)
+	this.logger.Log("Contract Deployed " + addr.String())
+	this.logger = this.logger.GetSubInstance(log.Topic(types.Address(addr).ToString()))
 	this.Contract = types.Address(addr)
 	this.contractInstance = instance
 	committedChan := make(chan *CalculationProcCommitted, 5)
+	this.logger.Log("Try To Watch Commit")
 	this.commitWatcher, err = this.contractInstance.WatchCommitted(&bind.WatchOpts{Context: context.Background()}, committedChan)
 	if err != nil {
-		fmt.Println("COMMITERR", err)
+		this.logger.Err("Watch Commit Fail " + err.Error())
 		return types.Address{}, err
 	}
 	punishedChan := make(chan *CalculationProcPunished, 5)
+	this.logger.Log("Try To Watch Punish")
 	this.punishWatcher, err = this.contractInstance.WatchPunished(nil /*&bind.WatchOpts{Context: context.Background()}*/, punishedChan)
 	if err != nil {
-		fmt.Println("PUNISH ERR", err)
+		this.logger.Err("Watch Punish Fail " + err.Error())
 		return types.Address{}, err
 	}
 	terminatedChan := make(chan *CalculationProcTerminated, 5)
+	this.logger.Log("Try To Watch Terminate")
 	this.terminateWatcher, err = this.contractInstance.WatchTerminated(nil, terminatedChan)
 	if err != nil {
-		fmt.Println("TERMINATE ERR", err)
+		this.logger.Err("Watch Terminate Fail " + err.Error())
 		return types.Address{}, err
 	}
 	go this.watch(committedChan, punishedChan, terminatedChan) //ERROR HANDLE
+	this.logger.Log("Strart OK")
 	return this.Contract, nil
 }
 
 func (this *CalculationContract) watch(committedChan chan *CalculationProcCommitted, punishedChan chan *CalculationProcPunished, terminatedChan chan *CalculationProcTerminated) {
-	fmt.Println("WATCHING")
+	this.logger.Log("Start Watching")
 	for {
 		select {
 		case commit := <-committedChan:
-			fmt.Println("RECEIVE COMMIT", commit.Ans, commit.AnsHash, commit.Participant)
+			this.logger.Log("Receive Commit Answer: " + commit.Ans + " AnsewrHash: " + commit.AnsHash + " Participant: " + types.Address(commit.Participant).ToString())
 			var ans [][]string
 			err := json.Unmarshal([]byte(commit.Ans), &ans)
 			if err != nil {
+				this.logger.Err("Commit Msg Unmarshal Fail " + err.Error())
 				continue
 			}
 			this.contractStateUpdate <- &Answer{
@@ -149,73 +166,86 @@ func (this *CalculationContract) watch(committedChan chan *CalculationProcCommit
 				case err := <-this.commitWatcher.Err():
 					fmt.Println("COMMIT ERR", err)*/
 		case punish := <-punishedChan:
-			fmt.Println("RECEIVE PUNISH", punish)
+			this.logger.Log("Receive Punish " + types.Address(punish.Participant).ToString())
 			this.contractStateUpdate <- &Answer{
 				Commiter: types.Address(punish.Participant),
 			} /*
 				case err := <- this.punishWatcher.Err():
 				fmt.Println("PUNISH ERR",err)*/
 		case terminate := <-terminatedChan:
-			fmt.Println("TERMINATE", terminate)
+			this.logger.Log("Receive Terminate Answer: " + terminate.Ans + " Count: " + terminate.Cnt.Text(10))
 		case <-this.stopSiganl:
-			fmt.Println("CONTRACT STOP")
+			this.logger.Log("Stop Watching")
 			return
 		}
 	}
 }
 
 func (this *CalculationContract) Commit(info *ContractDeployInfo, ans [][]string, ansHash string) error {
+	this.logger.Log("Try To Commit")
 	this.handler.lock.Lock()
 	defer this.handler.lock.Unlock()
 	ansb, _ := json.Marshal(ans)
-	fmt.Println(this.handler.account)
 	auth := bind.NewKeyedTransactor(this.handler.account.ECDSAPrivateKey)
 	auth.Value = info.Value
 	auth.GasLimit = info.GasLimit
-	//fmt.Println("TRY GASPRICE")
+	this.logger.Log("Try To Get GasPrice")
 	gp, err := this.handler.client.SuggestGasPrice(context.Background())
 	if err != nil {
-		fmt.Println("GAS PRICE ERR", err)
+		this.logger.Err("Fail To Get GasPrice " + err.Error())
 		return err
 	}
-	//fmt.Println("GP OK", gp)
+	this.logger.Log("GasPrice " + gp.Text(10))
 	auth.GasPrice = gp //this.basicInfo.GasPrice
-	//fmt.Println("TRY NONCE")
+	this.logger.Log("Try To Get Nonce")
 	nonce, err := this.handler.client.PendingNonceAt(context.Background(), common.Address(this.handler.account.Id))
 	if err != nil {
-		fmt.Println("NONCE", err)
+		this.logger.Err("Fail To Get Nonce " + err.Error())
 		return err
 	}
-	//fmt.Println("NONCE OK", nonce)
+	this.logger.Log("Nonce " + strconv.Itoa(int(nonce)))
 	auth.Nonce = big.NewInt(int64(nonce))
-	fmt.Println("AUTH", auth)
 	_, err = this.contractInstance.Commit(auth, string(ansb), ansHash)
-	return err
+	if err != nil {
+		this.logger.Err("Commit Fail " + err.Error())
+		return err
+	}
+	return nil
 }
 
 func (this *CalculationContract) Terminate() error {
+	this.logger.Log("Try To Terminate")
 	this.handler.lock.Lock()
 	defer this.handler.lock.Unlock()
 	auth := bind.NewKeyedTransactor(this.handler.account.ECDSAPrivateKey)
 	auth.Value = big.NewInt(0)
 	auth.GasLimit = this.basicInfo.GasLimit
+	this.logger.Log("Try To Get GasPrice")
 	gp, err := this.handler.client.SuggestGasPrice(context.Background())
 	if err != nil {
+		this.logger.Err("Fail To Get GasPrice " + err.Error())
 		return err
 	}
+	this.logger.Log("GasPrice " + gp.Text(10))
 	auth.GasPrice = gp //this.basicInfo.GasPrice
+	this.logger.Log("Try To Get Nonce")
 	nonce, err := this.handler.client.PendingNonceAt(context.Background(), common.Address(this.handler.account.Id))
 	if err != nil {
-		fmt.Println("NONCE", err)
+		this.logger.Err("Fail To Get Nonce " + err.Error())
 		return err
 	}
+	this.logger.Log("Nonce " + strconv.Itoa(int(nonce)))
 	auth.Nonce = big.NewInt(int64(nonce))
-	this.contractInstance.Terminate(auth)
+	_, err = this.contractInstance.Terminate(auth)
+	if err != nil {
+		this.logger.Err("Terminate " + err.Error())
+	}
 	close(this.contractStateUpdate)
 	this.punishWatcher.Unsubscribe()
 	this.commitWatcher.Unsubscribe()
 	this.terminateWatcher.Unsubscribe()
 	this.stopSiganl <- *new(struct{})
 	close(this.stopSiganl)
+	this.logger.Log("Terminate OK")
 	return nil
 }

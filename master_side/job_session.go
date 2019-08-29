@@ -11,14 +11,13 @@ import (
 )
 
 func (this *Job) StartSession(sch *Scheduler) error {
-	fmt.Println("SESSION START", this.ID)
+	this.logger.Log("Try To Start Job Session")
 	this.Init()
 	addr, err := this.CalculationContract.Start()
 	if err != nil {
-		fmt.Println("CONTRACT ERR", err)
+		this.logger.Err("Fail To Start Contract " + err.Error())
 		return err
 	}
-	fmt.Println("CONTRACT", addr)
 	this.PeerList.AddCallBack("handleMetaDataReq", this.handleMetaDataReq)
 	req, err := this.getComputationReq(addr)
 	//err = this.PeerList.BroadCastRPC(this.ID, peer_list.SeekParticipantReq, req) //(req)

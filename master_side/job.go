@@ -3,6 +3,7 @@ package master_side
 import (
 	"math/big"
 	"vcbb/blockchain"
+	"vcbb/log"
 	"vcbb/msg"
 	"vcbb/peer_list"
 	"vcbb/types"
@@ -40,6 +41,7 @@ type Job struct {
 	MaxAnswerCnt        uint8
 	MaxAnswer           [][]string
 	MaxAnswerHash       string
+	logger              *log.LoggerInstance
 	//Dependencies        []*Dependency//
 	//Partitions          []string//
 	//Code                string//
@@ -58,7 +60,7 @@ type JobMeta struct {
 	//RootHash         string          `json:"root"`
 }
 
-func NewJob(id string, sch *Scheduler, schnode *scheduleNode, minAnsCnt uint8 /*dependencies []*Dependency, partitions []string, code, basetest, hardwarereq string*/) *Job {
+func NewJob(id string, sch *Scheduler, schnode *scheduleNode, minAnsCnt uint8, fatherLogger *log.LoggerInstance /*dependencies []*Dependency, partitions []string, code, basetest, hardwarereq string*/) *Job {
 	ret := &Job{
 		ID:           id,
 		State:        Preparing,
@@ -66,12 +68,14 @@ func NewJob(id string, sch *Scheduler, schnode *scheduleNode, minAnsCnt uint8 /*
 		PeerList:     sch.peerList.GetInstance(id),
 		SchNode:      schnode,
 		MinAnswerCnt: minAnsCnt,
+		logger:       fatherLogger.GetSubInstance(log.Topic("Job " + id)),
 		//Dependencies:       dependencies,
 		//Partitions:         partitions,
 		//Code:               code,
 		//BaseTest:           basetest,
 		//HarWareRequirement: hardwarereq,
 	}
+	ret.logger.Log("Try To Resolve Dependencies")
 	ret.Dependencies = make([]msg.JobMeta, 0)
 	for _, v := range schnode.dependencies {
 		keys := make([]string, len(v.keys))
@@ -86,6 +90,7 @@ func NewJob(id string, sch *Scheduler, schnode *scheduleNode, minAnsCnt uint8 /*
 		}
 		ret.Dependencies = append(ret.Dependencies, dep)
 	}
+	ret.logger.Log("Job Construct OK")
 	return ret
 }
 
@@ -102,6 +107,6 @@ func (this *Job) Init() {
 		ParticipantCount: uint8(2),
 		Distribute:       [8]*big.Int{big.NewInt(20), big.NewInt(10), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0)},
 	}
-	this.CalculationContract = blockchain.NewCalculationContract(this.Sch.bcHandler, this.ContractStateUpdate, binfo, cinfo)
+	this.CalculationContract = blockchain.NewCalculationContract(this.Sch.bcHandler, this.ContractStateUpdate, binfo, cinfo, this.logger)
 	this.AnswerDistribute = make(map[string][]types.Address)
 }

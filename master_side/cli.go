@@ -2,10 +2,10 @@ package master_side
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"vcbb/blockchain"
+	"vcbb/log"
 	"vcbb/peer_list"
 	"vcbb/vcfs"
 )
@@ -16,30 +16,23 @@ type MasterClient struct {
 	PeerList   *peer_list.PeerList
 	fileSystem *vcfs.FileSystem
 	bcHandler  *blockchain.EthBlockChainHandler
+	logger     *log.LoggerInstance
 }
 
-func NewMasterClient( /*bcurl string,*/ pl *peer_list.PeerList, fs *vcfs.FileSystem, bchandler *blockchain.EthBlockChainHandler /*, account *types.Account, ns net.NetService*/) (*MasterClient, error) {
-	/*
-		pl := peer_list.NewPeerList(account.Id, ns)
-		bchandler, err := blockchain.NewEthBlockChainHandler(bcurl, account)
-		if err != nil {
-			return nil, err
-		}
-		kv, err := vcfs.NewRedisKVStore("localhost:6379", 1)
-		if err != nil {
-			return nil, err
-		}*/
+func NewMasterClient(pl *peer_list.PeerList, fs *vcfs.FileSystem, bchandler *blockchain.EthBlockChainHandler, logSystem *log.LogSystem) (*MasterClient, error) {
 	ret := &MasterClient{
 		schedulers: make([]*Scheduler, 0),
 		PeerList:   pl,
-		fileSystem: fs, //vcfs.NewFileSystem(kv, pl),
+		fileSystem: fs,
 		bcHandler:  bchandler,
+		logger:     logSystem.GetInstance(log.Topic("Master Client")),
 	}
+	ret.logger.Log("New Master Client")
 	return ret, nil
 }
 
 func (this *MasterClient) Run(url string) {
-	fmt.Println("ST")
+	this.logger.Log("Start")
 	//this.PeerList.Run()
 	//this.fileSystem.Serve()
 	http.HandleFunc("/commitSchGraph", this.handleReq)
@@ -47,32 +40,38 @@ func (this *MasterClient) Run(url string) {
 }
 
 func (this *MasterClient) handleReq(w http.ResponseWriter, req *http.Request) {
+	this.logger.Log("Receive Request")
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
+		this.logger.Err("Fail To Read Request Body " + err.Error())
 		return
 	}
 	var reqobj schReq
 	err = json.Unmarshal(body, &reqobj)
 	if err != nil {
+		this.logger.Err("Fail To Unmarshal Request " + err.Error())
 		return
 	}
 	graph, err := this.constructGraph(reqobj.SchGraph)
 	if err != nil {
+		this.logger.Err("Fail To Construct Graph " + err.Error())
 		return
 	}
 	result := make(chan [][]string, 1)
 	sch, err := NewScheduler("test", this.bcHandler, this.PeerList, this.fileSystem, graph, reqobj.OriDataHash, result)
 	if err != nil {
+		this.logger.Err("Fail To Create Scheduler " + err.Error())
 		return
 	}
 	//fmt.Println(sch)
+	this.logger.Log("Scheduler Create OK")
 	sch.Dispatch()
 	ans := <-result
-	fmt.Println("OVER", ans)
+	this.logger.Log("Compute Over")
 	for _, partition := range ans {
 		for _, anshash := range partition {
 			ansdata, _ := this.fileSystem.Get(anshash)
-			fmt.Println(string(ansdata))
+			this.logger.Log("Final Answer Data" + string(ansdata))
 		}
 	}
 	/*
@@ -83,8 +82,10 @@ func (this *MasterClient) handleReq(w http.ResponseWriter, req *http.Request) {
 }
 
 func (this *MasterClient) constructGraph(rawGraph []rawScheduleNode) (scheduleGraph, error) {
+	this.logger.Log("Try To Create Graph")
 	ret := make([]*scheduleNode, len(rawGraph))
 	idmap := make(map[string]*scheduleNode)
+	this.logger.Log("Try To Construct Nodes")
 	for i, rawnode := range rawGraph {
 		deps := make(map[string]*Dependency)
 		for k, v := range rawnode.Dependencies {
@@ -102,6 +103,7 @@ func (this *MasterClient) constructGraph(rawGraph []rawScheduleNode) (scheduleGr
 		ret[i] = node
 		idmap[node.id] = node
 	}
+	this.logger.Log("Try To Construct Node Relation")
 	for i, rawnode := range rawGraph {
 		inNodes := make([]*scheduleNode, 0)
 		outNodes := make([]*scheduleNode, len(rawnode.OutNodes))
