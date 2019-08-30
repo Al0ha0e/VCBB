@@ -43,7 +43,7 @@ func NewUDPNetService(inaddr, outaddr string) (*UDPNetService, error) {
 	return &UDPNetService{
 		info:     [2]*UDPInfo{inInfo, outInfo},
 		peers:    make(map[string]*UDPInfo),
-		buffSize: 4096,
+		buffSize: 65536,
 	}, nil
 }
 

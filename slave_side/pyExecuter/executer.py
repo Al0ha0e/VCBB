@@ -1,6 +1,6 @@
 from bottle import request, response, route, run, template
 import time
-import json
+import json as JSON
 import redis
 import hashlib
 
@@ -42,7 +42,7 @@ def executer():
                   request.json["partitionCnt"], request.json["code"])
     # print(res)
     response.content_type = "application/json"
-    return json.dumps(res)
+    return JSON.dumps(res)
     # return template('<b>Hello {{name}}</b>!', name=name)
 
 
