@@ -97,7 +97,7 @@ func WriteString(msg string) error {
 
 func (this *LoggerInstance) Log(msg string) error {
 	if this.fatherInstance == nil {
-		return this.logSystem.Log(string(this.LogTopic) + " " + msg + "\r\n")
+		return this.logSystem.Log(string(this.LogTopic) + " " + msg /* + "\r\n"*/)
 	} else {
 		return this.fatherInstance.Log(string(this.LogTopic) + " " + msg)
 	}
@@ -105,7 +105,7 @@ func (this *LoggerInstance) Log(msg string) error {
 
 func (this *LoggerInstance) Err(msg string) error {
 	if this.fatherInstance == nil {
-		return this.logSystem.Err(string(this.LogTopic) + " " + msg + "\r\n")
+		return this.logSystem.Err(string(this.LogTopic) + " " + msg /*+ "\r\n"*/)
 	} else {
 		return this.fatherInstance.Err(string(this.LogTopic) + " " + msg)
 	}

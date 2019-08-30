@@ -2,7 +2,6 @@ package vcfs
 
 import (
 	"encoding/json"
-	"fmt"
 	"sync"
 	"time"
 
@@ -134,11 +133,11 @@ func (this *FilePurchaseSession) HandlePurchaseRes(res peer_list.MessageInfo) {
 	if err != nil {
 		return
 	}
-	fmt.Println("PURCHASE RES", resobj)
+	//fmt.Println("PURCHASE RES", resobj)
 	for i, key := range resobj.Keys {
 		id := this.keyMap[key]
 		if this.peers[id][fr] != 2 {
-			fmt.Println("BAD PEER")
+			//fmt.Println("BAD PEER")
 			continue
 		}
 		file := resobj.Files[i]
@@ -153,24 +152,24 @@ func (this *FilePurchaseSession) HandlePurchaseRes(res peer_list.MessageInfo) {
 			info.peer = append(info.peer, res.From)
 		}
 		if info.state == fPossess {
-			fmt.Println("FILE ALREADY EXIST")
+			//fmt.Println("FILE ALREADY EXIST")
 			info.lock.Unlock()
 			continue
 		}
 		err := this.fileSystem.engine.Set(key, file)
 		if err != nil {
-			fmt.Println("SET ERR")
+			//fmt.Println("SET ERR")
 			info.lock.Unlock()
 			continue
 		}
-		fmt.Println("PURCHASE OK", resobj.Keys)
+		//fmt.Println("PURCHASE OK", resobj.Keys)
 		info.state = fPossess
 		var sign struct{}
 		this.stopSignal[id] <- sign
 		close(this.stopSignal[id])
 		close(this.peerChan[id])
 		this.partCnt--
-		fmt.Println("CNT", this.partCnt)
+		//fmt.Println("CNT", this.partCnt)
 		this.resultChan <- filePurchaseResult{
 			key:     key,
 			success: true,

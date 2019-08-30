@@ -1,7 +1,6 @@
 package net
 
 import (
-	"fmt"
 	"net"
 	"sync"
 	"vcbb/types"
@@ -65,7 +64,6 @@ func (this *UDPNetService) serve() {
 		if err != nil {
 			continue
 		}
-		fmt.Println("RECEIVE MSG")
 		this.bus <- buffer[:l]
 	}
 }
@@ -80,10 +78,7 @@ func (this *UDPNetService) SendMessageTo(name string, content []byte) /*error*/ 
 	if info == nil {
 		return // fmt.Errorf("PEER NOT EXIST")
 	}
-	conn, err := net.DialUDP("udp", this.info[1].udpAddr, info.udpAddr)
-	if err != nil {
-		fmt.Println("UDP DIAL ERR", err)
-	}
+	conn, _ := net.DialUDP("udp", this.info[1].udpAddr, info.udpAddr)
 	conn.Write(content)
 	conn.Close()
 }

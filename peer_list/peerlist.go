@@ -2,8 +2,10 @@ package peer_list
 
 import (
 	"encoding/json"
+	"strconv"
 	"vcbb/net"
 
+	"vcbb/log"
 	"vcbb/types"
 )
 
@@ -20,9 +22,10 @@ type PeerList struct {
 	netService net.NetService
 	bus        chan []byte
 	stopSignal chan struct{}
+	logger     *log.LoggerInstance
 }
 
-func NewPeerList(addr types.Address, ns net.NetService) *PeerList {
+func NewPeerList(addr types.Address, ns net.NetService, logSystem *log.LogSystem) *PeerList {
 	return &PeerList{
 		Address:   addr,
 		Peers:     make([]types.Address, 0, 10),
@@ -32,23 +35,37 @@ func NewPeerList(addr types.Address, ns net.NetService) *PeerList {
 		netService: ns,
 		bus:        make(chan []byte, 10),
 		stopSignal: make(chan struct{}, 1),
+		logger:     logSystem.GetInstance(log.Topic("PeerList")),
 	}
 }
 
 func (this *PeerList) Run() {
+	this.logger.Log("PeerList Start")
 	this.netService.RegisterUser(this.Address.ToString(), this.bus)
 	go this.Serve()
 }
 
 func (this *PeerList) Serve() {
+	this.logger.Log("Serving")
 	for {
 		select {
 		case <-this.stopSignal:
+			this.logger.Log("Stop")
 			return
 		case msg := <-this.bus:
+			this.logger.Log("Receive Message")
 			var msgobj Message
-			json.Unmarshal(msg, &msgobj)
-			//fmt.Println(msgobj)
+			err := json.Unmarshal(msg, &msgobj)
+			if err != nil {
+				this.logger.Log("Fail To Unmarshal Message")
+				continue
+			}
+			this.logger.Log(
+				"Message From: " + msgobj.From.ToString() +
+					" From Session: " + msgobj.FromSession +
+					" To Session " + msgobj.ToSession +
+					" To Method: " + msgobj.Method +
+					" Distance " + strconv.Itoa(int(msgobj.Dist)))
 			msgobj.Dist--
 			if msgobj.Dist > 0 {
 				this.BroadCastRPC(msgobj.Method, msgobj.Content, msgobj.Dist)
@@ -70,12 +87,14 @@ func (this *PeerList) Serve() {
 }
 
 func (this *PeerList) GetInstance(id string) *PeerListInstance {
-	ret := NewPeerListInstance(id, this)
+	this.logger.Log("Get PeerList Instance " + id)
+	ret := NewPeerListInstance(id, this, this.logger)
 	this.instances[id] = ret
 	return ret
 }
 
 func (this *PeerList) RemoveInstance(id string) {
+	this.logger.Log("Remove Instance " + id)
 	delete(this.instances, id)
 }
 
@@ -84,6 +103,7 @@ func (this *PeerList) RemoteProcedureCall(to types.Address, toSession, method st
 }
 
 func (this *PeerList) BroadCastRPC(method string, msg []byte, dist uint8) ([]types.Address, error) {
+	this.logger.Log("BroadCast " + method)
 	for _, peer := range this.Peers {
 		err := this.BasicRemoteProcedureCall(peer, Global, Global, method, msg, dist)
 		if err != nil {
@@ -98,10 +118,15 @@ func (this *PeerList) Reply(info MessageInfo, method string, msg []byte) error {
 }
 
 func (this *PeerList) AddCallBack(name string, cb func(MessageInfo)) {
+	this.logger.Log("Add Callback " + name)
 	this.callBack[name] = cb
 }
 
 func (this *PeerList) BasicRemoteProcedureCall(to types.Address, frsess, tosess, method string, msg []byte, dist uint8) error {
+	this.logger.Log("Try To Send Mseeage To: " + to.ToString() +
+		" To Session: " + tosess +
+		" To Method: " + method +
+		" Distance: " + strconv.Itoa(int(dist)))
 	pkg := newMessage(this.Address, to, frsess, tosess, method, msg, dist)
 	pkgb, err := json.Marshal(pkg)
 	if err != nil {

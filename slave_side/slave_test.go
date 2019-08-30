@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 	"time"
+	"vcbb/log"
 	"vcbb/msg"
 	"vcbb/net"
 	"vcbb/peer_list"
@@ -47,11 +48,12 @@ addr3 := types.NewAddress("0xd247126aa720779a4172b88405ec2ad29c6a22d3")
 func getSch(addr types.Address, ns *net.NetSimulator) *Scheduler {
 	pl := peer_list.NewPeerList(addr, ns)
 	pl.Run()
-	eg,_ := vcfs.NewRedisKVStore("localhost:6379", 0)
+	eg, _ := vcfs.NewRedisKVStore("localhost:6379", 0)
 	fs := vcfs.NewFileSystem(eg, pl)
 	fs.Serve()
-	exe := NewPyExecuter(url)
-	sch := NewScheduler(100, pl, fs, nil, exe)
+	ls, _ := log.NewLogSystem("")
+	exe := NewPyExecuter(url, ls)
+	sch := NewScheduler(100, pl, fs, nil, exe, ls)
 	return sch
 }
 

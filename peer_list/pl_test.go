@@ -5,18 +5,20 @@ import (
 	"testing"
 	"vcbb/net"
 
+	"vcbb/log"
 	"vcbb/types"
 )
 
 func TestPeerList(t *testing.T) {
 	ns := net.NewNetSimulator()
+	ls, _ := log.NewLogSystem("")
 	var addrs [3]types.Address
 	addrs[0] = types.NewAddress("0xd247126aa720779a4172b88405ec2ad29c6a22d1")
 	addrs[1] = types.NewAddress("0xd247126aa720779a4172b88405ec2ad29c6a22d2")
 	addrs[2] = types.NewAddress("0xd247126aa720779a4172b88405ec2ad29c6a22d3")
 	var pls [3]*PeerList
 	for i := 0; i < 3; i++ {
-		pls[i] = NewPeerList(addrs[i], ns)
+		pls[i] = NewPeerList(addrs[i], ns, ls)
 	}
 	pls[0].Peers = append(pls[0].Peers, []types.Address{addrs[1], addrs[2]}...)
 	pls[1].Peers = append(pls[1].Peers, []types.Address{addrs[0], addrs[2]}...)

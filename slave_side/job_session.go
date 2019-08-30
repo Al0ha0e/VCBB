@@ -2,12 +2,12 @@ package slave_side
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 
 	"golang.org/x/crypto/sha3"
 
 	"vcbb/blockchain"
+	"vcbb/log"
 	"vcbb/msg"
 	"vcbb/peer_list"
 	"vcbb/types"
@@ -29,13 +29,18 @@ type Job struct {
 	peerList            *peer_list.PeerListInstance
 	partitionCnt        uint64
 	calculationContract *blockchain.CalculationContract
+	logger              *log.LoggerInstance
 }
 
-func NewJob(contractAddress, master types.Address, id, baseTest, hardware string, sch *Scheduler, partitionCnt uint64) (*Job, error) {
-	contract, err := blockchain.CalculationContractFromAddress(sch.bcHandler, contractAddress)
+func NewJob(contractAddress, master types.Address, id, baseTest, hardware string, sch *Scheduler, partitionCnt uint64, fatherLogger *log.LoggerInstance) (*Job, error) {
+	logger := fatherLogger.GetSubInstance(log.Topic(id))
+	logger.Log("Try To Create New Job Session With Master " + master.ToString())
+	contract, err := blockchain.CalculationContractFromAddress(sch.bcHandler, contractAddress, logger)
 	if err != nil {
+		logger.Err("Fail To Create Contrcat From Address " + contractAddress.ToString())
 		return nil, err
 	}
+	logger.Log("Create Contract OK")
 	return &Job{
 		id:                  id,
 		master:              master,
@@ -44,6 +49,7 @@ func NewJob(contractAddress, master types.Address, id, baseTest, hardware string
 		sch:                 sch,
 		partitionCnt:        partitionCnt,
 		calculationContract: contract,
+		logger:              logger,
 	}, nil
 }
 
@@ -52,6 +58,7 @@ func (this *Job) Init() {
 }
 
 func (this *Job) StartSession(req peer_list.MessageInfo) {
+	this.logger.Log("Start Session")
 	this.Init()
 	this.peerList.AddCallBack("handleMetaDataRes", this.handleMetaDataRes)
 	res := msg.MetaDataReq{
@@ -62,12 +69,15 @@ func (this *Job) StartSession(req peer_list.MessageInfo) {
 }
 
 func (this *Job) handleMetaDataRes(res peer_list.MessageInfo) {
+	this.logger.Log("Receive Metadata From: " + res.From.ToString() + " Session: " + res.FromSession)
 	if res.From != this.master {
+		this.logger.Err("Wrong Metadata Origin")
 		return
 	}
 	var resobj msg.MetaDataRes
 	err := json.Unmarshal(res.Content, &resobj)
 	if err != nil {
+		this.logger.Err("Fail To Unmarshal Metadata " + err.Error())
 		this.terminate()
 		this.sch.jobError <- jobRunTimeError{
 			id:  this.id,
@@ -75,7 +85,7 @@ func (this *Job) handleMetaDataRes(res peer_list.MessageInfo) {
 		}
 		return
 	}
-	fmt.Println("META OBJ", resobj)
+	this.logger.Log("Metadata Code " + resobj.Code)
 	this.code = resobj.Code
 	oksign := make(chan struct{}, 1)
 	parts := make([]vcfs.FilePart, len(resobj.DependencyMeta))
@@ -83,14 +93,13 @@ func (this *Job) handleMetaDataRes(res peer_list.MessageInfo) {
 		parts[i].Peers = meta.Participants
 		parts[i].Keys = meta.Keys
 	}
-	fmt.Println("PARTS", parts)
 	go this.sch.fileSystem.FetchFiles(parts, oksign)
 	<-oksign
-	fmt.Println("FETCH OK TRY EXECUTE")
+	this.logger.Log("File Fetch OK, Try To Execute")
 	exeResultChan := make(chan *executeResult, 1)
 	go this.sch.executer.Run(this.partitionCnt, resobj.PartitionIdOffset, resobj.Inputs, resobj.Code, exeResultChan)
 	exeResult := <-exeResultChan
-	fmt.Println("EXECUTE OK, ANS", exeResult)
+	this.logger.Log("Execute OK Try To Set FileInfo")
 	// ERROR HANDLE
 	var sum string
 	for _, str := range exeResult.result {
@@ -101,14 +110,14 @@ func (this *Job) handleMetaDataRes(res peer_list.MessageInfo) {
 	}
 	sumb := make([]byte, 64)
 	sha3.ShakeSum256(sumb, []byte(sum))
-	fmt.Println("SUM", sumb, string(sumb))
+	this.logger.Log("Answer Hash " + string(sumb))
 	info := &blockchain.ContractDeployInfo{
 		Value:    big.NewInt(100),
 		GasLimit: uint64(4712388),
 	}
-	//fmt.Println("CONTRACT", this.calculationContract)
+	this.logger.Log("Try To Commit Answer")
 	this.calculationContract.Commit(info, exeResult.result, string(sumb))
-	fmt.Println("OK COMMIT")
+	this.logger.Log("Contract Commit OK")
 }
 
 func (this *Job) terminate() {

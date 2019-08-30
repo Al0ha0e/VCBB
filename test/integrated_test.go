@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 	"vcbb/blockchain"
+	"vcbb/log"
 	"vcbb/master_side"
 	"vcbb/net"
 	"vcbb/peer_list"
@@ -14,15 +15,15 @@ import (
 
 const url = "localhost:8080"
 
-func getSch(account *types.Account, ns *net.NetSimulator) *slave_side.Scheduler {
+func getSch(account *types.Account, ns *net.NetSimulator, logSystem *log.LogSystem) *slave_side.Scheduler {
 	pl := peer_list.NewPeerList(account.Id, ns)
 	pl.Run()
 	eg, _ := vcfs.NewRedisKVStore("localhost:6379", 0)
 	fs := vcfs.NewFileSystem(eg, pl)
 	fs.Serve()
-	exe := slave_side.NewPyExecuter(url)
+	exe := slave_side.NewPyExecuter(url, logSystem)
 	bch, _ := blockchain.NewEthBlockChainHandler("ws://127.0.0.1:8546", account)
-	sch := slave_side.NewScheduler(100, pl, fs, bch, exe)
+	sch := slave_side.NewScheduler(100, pl, fs, bch, exe, logSystem)
 	return sch
 }
 
@@ -45,10 +46,11 @@ func TestMasterAndSlave(t *testing.T) {
 	fs := vcfs.NewFileSystem(eg, pl)
 	fs.Serve()
 	bc, _ := blockchain.NewEthBlockChainHandler("ws://127.0.0.1:8546", acco1)
-	cli, _ := master_side.NewMasterClient(pl, fs /*"ws://127.0.0.1:8546"*/, bc /*, acco1, ns*/)
+	ls, _ := log.NewLogSystem("")
+	cli, _ := master_side.NewMasterClient(pl, fs /*"ws://127.0.0.1:8546"*/, bc /*, acco1, ns*/, ls)
 	cli.PeerList.Peers = append(cli.PeerList.Peers, addr2)
 	cli.Run(":8080")
-	sch := getSch(acco2, ns)
+	sch := getSch(acco2, ns, ls)
 	sch.Run()
 	fmt.Println("INITOK")
 	for {

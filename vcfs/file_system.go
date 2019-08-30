@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"vcbb/log"
 	"vcbb/peer_list"
 	"vcbb/types"
 )
@@ -52,6 +53,7 @@ type FileSystem struct {
 	idSource *types.UniqueRandomIDSource
 	lock     sync.Mutex
 	rwlock   sync.RWMutex
+	logger   *log.LoggerInstance
 }
 
 func NewFileSystem(eg KVStore, pl *peer_list.PeerList) *FileSystem {

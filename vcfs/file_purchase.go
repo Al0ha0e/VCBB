@@ -2,7 +2,6 @@ package vcfs
 
 import (
 	"encoding/json"
-	"fmt"
 	"sync"
 	"time"
 
@@ -52,7 +51,7 @@ func (this *FileSystem) FetchFiles(parts []FilePart, okSignal chan struct{}) {
 			purchaseList = append(purchaseList, np)
 		}
 	}
-	fmt.Println("LIST", purchaseList)
+	//fmt.Println("LIST", purchaseList)
 	if len(purchaseList) == 0 {
 		var ret struct{}
 		okSignal <- ret
@@ -65,16 +64,16 @@ func (this *FileSystem) FetchFiles(parts []FilePart, okSignal chan struct{}) {
 	go func() {
 		for {
 			result, ok := <-resultChan
-			fmt.Println("RESULT", result)
+			//fmt.Println("RESULT", result)
 			if !ok {
 				return
 			}
 			if !result.success {
 				// TODO ERR HANDLE
-				fmt.Println("TODO")
+				//fmt.Println("TODO")
 			} else {
 				waitingCount--
-				fmt.Println("WC", waitingCount)
+				//fmt.Println("WC", waitingCount)
 				if waitingCount == 0 {
 					var ret struct{}
 					stopSignal <- ret
@@ -114,7 +113,7 @@ func (this *FileSystem) HandleFilePurchaseReq(req peer_list.MessageInfo) {
 	if err != nil {
 		return
 	}
-	fmt.Println("PURCHASE", reqobj)
+	//fmt.Println("PURCHASE", reqobj)
 	fr := req.From.ToString()
 	//TODO: Check Contract
 	retfiles := make([][]byte, len(reqobj.Keys))
@@ -128,7 +127,7 @@ func (this *FileSystem) HandleFilePurchaseReq(req peer_list.MessageInfo) {
 		}
 		file, err := this.engine.Get(key)
 		if err != nil {
-			fmt.Println("ENGINE GET ERR", err)
+			//fmt.Println("ENGINE GET ERR", err)
 			info.rwlock.Unlock()
 			retfiles[i] = nil
 			continue
@@ -143,7 +142,7 @@ func (this *FileSystem) HandleFilePurchaseReq(req peer_list.MessageInfo) {
 		Keys:  reqobj.Keys,
 		Files: retfiles,
 	}
-	fmt.Println("FILE RES", res)
+	//fmt.Println("FILE RES", res)
 	resb, _ := json.Marshal(res)
 	this.peerList.Reply(req, "HandlePurchaseRes", resb)
 }

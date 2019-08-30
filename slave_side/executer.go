@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"vcbb/log"
 )
 
 type executeReq struct {
@@ -25,16 +26,21 @@ type Executer interface {
 }
 
 type PyExecuter struct {
-	url string
+	url    string
+	logger *log.LoggerInstance
 }
 
-func NewPyExecuter(url string) *PyExecuter {
+func NewPyExecuter(url string, logSystem *log.LogSystem) *PyExecuter {
+	logger := logSystem.GetInstance(log.Topic("Slave Executer"))
+	logger.Log("New Python Executer")
 	return &PyExecuter{
-		url: url,
+		url:    url,
+		logger: logger,
 	}
 }
 
 func (this *PyExecuter) Run(partitionCnt, partitionIdOffset uint64, keys [][]string, code string, result chan *executeResult) {
+	this.logger.Log("Try To Execute Code " + code)
 	reqobj := executeReq{
 		PartitionCnt:      partitionCnt,
 		PartitionIdOffset: partitionIdOffset,
@@ -44,27 +50,26 @@ func (this *PyExecuter) Run(partitionCnt, partitionIdOffset uint64, keys [][]str
 	req, _ := json.Marshal(reqobj)
 	res, err := http.Post(this.url+"/execute", "application/json", bytes.NewReader(req))
 	if err != nil {
-		fmt.Println("EXECUTER ERR", err)
+		this.logger.Err("Fail To Execute " + err.Error())
 		result <- &executeResult{err: err}
 		return
 	}
 	defer res.Body.Close()
 	//fmt.Println(res)
 	if res.Status != "200 OK" {
-		fmt.Println("EXECUTER ERR", res.Status)
+		this.logger.Err("Fail To Execute " + res.Status)
 		result <- &executeResult{err: fmt.Errorf(res.Status)}
 		return
 	}
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		fmt.Println("EXECUTER ERR", err)
+		this.logger.Err("Fail To Read Execute Result " + err.Error())
 		result <- &executeResult{err: err}
 		return
 	}
 	var ans [][]string
 	json.Unmarshal(body, &ans)
-	//fmt.Println(body, sb)
-	fmt.Println("EXECUTER ANS", ans)
+	this.logger.Log("Execute OK")
 	result <- &executeResult{
 		result: ans,
 		err:    nil,

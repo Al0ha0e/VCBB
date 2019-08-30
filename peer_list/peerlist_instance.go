@@ -1,6 +1,7 @@
 package peer_list
 
 import (
+	"vcbb/log"
 	"vcbb/types"
 )
 
@@ -19,21 +20,24 @@ type PeerListInstance struct {
 	ID       string
 	PL       *PeerList
 	callBack map[string]func(MessageInfo)
+	bus      chan []byte
+	logger   *log.LoggerInstance
 	//channels map[string]chan MessageInfo
-	bus chan []byte
 }
 
-func NewPeerListInstance(id string, pl *PeerList) *PeerListInstance {
+func NewPeerListInstance(id string, pl *PeerList, fatherLogger *log.LoggerInstance) *PeerListInstance {
 	return &PeerListInstance{
 		ID:       id,
 		PL:       pl,
 		callBack: make(map[string]func(MessageInfo)),
+		bus:      make(chan []byte, 10),
+		logger:   fatherLogger.GetSubInstance(log.Topic(id)),
 		//channels: make(map[string]chan MessageInfo),
-		bus: make(chan []byte, 10),
 	}
 }
 
 func (this *PeerListInstance) HandleMsg(meth string, msg MessageInfo) {
+	this.logger.Log("Handle Msg From " + msg.From.ToString())
 	method := this.callBack[meth]
 	if method != nil {
 		go method(msg)
@@ -41,6 +45,7 @@ func (this *PeerListInstance) HandleMsg(meth string, msg MessageInfo) {
 }
 
 func (this *PeerListInstance) AddCallBack(name string, cb func(MessageInfo)) {
+	this.logger.Log("Add Callback " + name)
 	this.callBack[name] = cb
 }
 func (this *PeerListInstance) GlobalRemoteProcedureCall(to types.Address, method string, msg []byte) error {

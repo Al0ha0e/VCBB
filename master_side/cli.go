@@ -58,7 +58,7 @@ func (this *MasterClient) handleReq(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	result := make(chan [][]string, 1)
-	sch, err := NewScheduler("test", this.bcHandler, this.PeerList, this.fileSystem, graph, reqobj.OriDataHash, result)
+	sch, err := NewScheduler("test", this.bcHandler, this.PeerList, this.fileSystem, graph, reqobj.OriDataHash, result, this.logger)
 	if err != nil {
 		this.logger.Err("Fail To Create Scheduler " + err.Error())
 		return
@@ -71,7 +71,7 @@ func (this *MasterClient) handleReq(w http.ResponseWriter, req *http.Request) {
 	for _, partition := range ans {
 		for _, anshash := range partition {
 			ansdata, _ := this.fileSystem.Get(anshash)
-			this.logger.Log("Final Answer Data" + string(ansdata))
+			this.logger.Log("Final Answer Data " + string(ansdata))
 		}
 	}
 	/*

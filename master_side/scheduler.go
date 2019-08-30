@@ -2,8 +2,10 @@ package master_side
 
 import (
 	"fmt"
+	"strconv"
 
 	"vcbb/blockchain"
+	"vcbb/log"
 	"vcbb/peer_list"
 	"vcbb/types"
 	"vcbb/vcfs"
@@ -19,6 +21,7 @@ type Scheduler struct {
 	originalData map[string]string
 	idSource     *types.UniqueRandomIDSource
 	finalResult  chan [][]string
+	logger       *log.LoggerInstance
 	//oriDataTransportSession *data.DataTransportSession
 	//originalDataTracker     *data.Tracker
 }
@@ -31,9 +34,13 @@ func NewScheduler(
 	graph scheduleGraph,
 	oridata map[string]string,
 	result chan [][]string,
+	fatherLogger *log.LoggerInstance,
 ) (*Scheduler, error) {
-	err := checkGraph(graph)
+	fatherLogger.Log("Try To Create Scheduler " + id)
+	logger := fatherLogger.GetSubInstance(log.Topic(id))
+	err := checkGraph(graph, logger)
 	if err != nil {
+		logger.Err("Fail To Check Graph " + err.Error())
 		return nil, err
 	}
 	return &Scheduler{
@@ -46,15 +53,18 @@ func NewScheduler(
 		originalData: oridata,
 		idSource:     types.NewUniqueRandomIDSource(32),
 		finalResult:  result,
+		logger:       logger,
 	}, nil
 }
 
 func (this *Scheduler) DispatchJob(id string, node *scheduleNode) error {
+	this.logger.Log("Try To Dispatch Job " + id)
 	job := NewJob(
 		id, //TODO: RANDOMID
 		this,
 		node,
 		node.minAnswerCount,
+		this.logger,
 		/*
 			[]*Dependency{oriDep},
 			node.partitions,
@@ -64,6 +74,7 @@ func (this *Scheduler) DispatchJob(id string, node *scheduleNode) error {
 	)
 	err := job.StartSession(this) //BUG:BLOCK WHEN A JOB WAITING FOR ITS CONTRACT
 	if err != nil {
+		this.logger.Err("Fail To Dispatch Job " + err.Error())
 		return err
 	}
 	return nil
@@ -76,17 +87,17 @@ func (this *Scheduler) DispatchJob(id string, node *scheduleNode) error {
 * watch the running state
  */
 func (this *Scheduler) Dispatch() error {
+	this.logger.Log("Scheduler Start")
 	oriMeta := &JobMeta{
 		Participants: []types.Address{this.peerList.Address},
 	}
+	this.logger.Log("Try To Set Original Data Info")
 	for _, v := range this.originalData {
 		this.fileSystem.SetInfo(v)
 	}
-	fmt.Println("LL", len(this.graph))
+	this.logger.Log("Searching For Zero-Indeg-Node")
 	for _, node := range this.graph {
-		fmt.Println("TRY ID", node.id)
 		if node.indeg+node.controlIndeg == 0 {
-			fmt.Println("0 INDEG", node.id)
 			node.dependencies["ori"].dependencyJobMeta = oriMeta
 			for k, v := range this.originalData {
 				pos, ok := node.inputMap[k]
@@ -106,11 +117,13 @@ func (this *Scheduler) Dispatch() error {
 }
 
 func (this *Scheduler) watch() {
+	this.logger.Log("Start Watching")
 	for {
 		jobmeta := <-this.result
-		fmt.Println("JOB META", jobmeta.Contract, jobmeta.Id, jobmeta.Participants, jobmeta.PartitionAnswers)
+		this.logger.Log("Job Terminated Id: " + jobmeta.Id + " Contract: " + jobmeta.Contract.ToString())
 		node := jobmeta.node
 		if node.outdeg+node.controlOutdeg == 0 {
+			this.logger.Log("Final Job Terminated")
 			var keys []string
 			for _, partitions := range jobmeta.PartitionAnswers {
 				for _, answer := range partitions {
@@ -122,12 +135,14 @@ func (this *Scheduler) watch() {
 				Keys:  keys,
 			}
 			ok := make(chan struct{}, 1)
+			this.logger.Log("Try To Fetch Final Answer")
 			this.fileSystem.FetchFiles([]vcfs.FilePart{part}, ok)
 			<-ok
-			fmt.Println("FINAL PURCHASE OK")
+			this.logger.Log("Final Answer Fetch OK")
 			this.finalResult <- jobmeta.PartitionAnswers
 			return
 		}
+		this.logger.Log("Update OutNodes")
 		for _, to := range node.outNodes {
 			to.indeg--
 			//to.dependencies = append(to.dependencies, &Dependency{DependencyJob: jobmeta.job, DependencyJobMeta: jobmeta})
@@ -145,6 +160,7 @@ func (this *Scheduler) watch() {
 				this.DispatchJob(this.idSource.Get(), to) //ERROR HANDLEING
 			}
 		}
+		this.logger.Log("Update Control OutNodes")
 		for _, to := range node.controlOutNodes {
 			to.controlIndeg--
 			if to.indeg+to.controlIndeg == 0 {
@@ -154,8 +170,9 @@ func (this *Scheduler) watch() {
 	}
 }
 
-func checkGraph(graph scheduleGraph) error {
+func checkGraph(graph scheduleGraph, logger *log.LoggerInstance) error {
 	l := len(graph)
+	logger.Log("Check Graph of length " + strconv.Itoa(int(l)))
 	if l == 0 {
 		return fmt.Errorf("empty graph")
 	}
